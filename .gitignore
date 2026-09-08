@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Derived experiment artifacts — regenerate with: python code/run_all.py
+results/train_labels.npz
+results/_smoke.log
+
+# LaTeX build products (root-anchored so results/*.log is still tracked)
+/*.aux
+/*.out
+/*.toc
+/*.fls
+/*.fdb_latexmk
+/*.synctex.gz
+/PROPOSAL_v2.log
+
+# OS
+Thumbs.db
+.DS_Store
