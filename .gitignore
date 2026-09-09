@@ -20,3 +20,18 @@ results/_smoke.log
 # OS
 Thumbs.db
 .DS_Store
+
+# Datasets and downloaded papers — tens of GB, never commit these
+raw/dataset/
+raw/**/*.pdf
+raw/**/*.zip
+
+# Exported models (regenerate: python code/edge/export_backbone.py, occ_model.py)
+onnx/
+
+# graphify knowledge-graph output (regenerate: /graphify .)
+graphify-out/
+
+# Jetson benchmark logs are worth keeping, engines are not
+**/*.engine
+**/*.plan
