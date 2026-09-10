@@ -1,0 +1,37 @@
+device:
+  hostname     sjsujetson-65
+  machine      aarch64
+  kernel       6.8.12-1021-tegra
+  python       3.12.3
+  model        NVIDIA Jetson Orin Nano Developer Kit
+  l4t          # R39 (release), REVISION: 2.0, GCID: 45755727, BOARD: generic, EABI: aarch64, DATE: Mon Jun  1 09:28:48 PM UTC 2026
+# KERNEL_VARIANT: oot
+TARGET_USERSPACE_LIB_DIR=nvidia
+TARGET_USERSPACE_LIB_DIR_PATH=usr/lib/aarch64-linux-gnu/nvidia
+  tensorrt     dpkg-query: no packages found matching tensorrt
+  power_mode   NV Power Mode: 15W / 0
+  mem_total_kb 7665088
+
+onnx: flashocc_shaped_skip.onnx (59.1 MB)
+trtexec: docker run --rm --runtime nvidia -v /home/sjsujetson/godeye:/home/sjsujetson/godeye -e LD_LIBRARY_PATH=/home/sjsujetson/godeye/lib:/usr/lib/aarch64-linux-gnu cmpelkk/jetson-llm:latest /usr/src/tensorrt/bin/trtexec
+
+NOTE: <9 GB total RAM. If engine builds are killed by the OOM reaper, lower --workspace-mb or add a swapfile.
+
+=== FP32 ===
+docker run --rm --runtime nvidia -v /home/sjsujetson/godeye:/home/sjsujetson/godeye -e LD_LIBRARY_PATH=/home/sjsujetson/godeye/lib:/usr/lib/aarch64-linux-gnu cmpelkk/jetson-llm:latest /usr/src/tensorrt/bin/trtexec --onnx=/home/sjsujetson/godeye/onnx/flashocc_shaped_skip.onnx --iterations=200 --warmUp=2000 --avgRuns=100 --useSpinWait --separateProfileRun --memPoolSize=workspace:2048M --timingCacheFile=/home/sjsujetson/godeye/out/timing.cache
+    could not parse latency - raw log kept
+
+=== FP16 ===
+docker run --rm --runtime nvidia -v /home/sjsujetson/godeye:/home/sjsujetson/godeye -e LD_LIBRARY_PATH=/home/sjsujetson/godeye/lib:/usr/lib/aarch64-linux-gnu cmpelkk/jetson-llm:latest /usr/src/tensorrt/bin/trtexec --onnx=/home/sjsujetson/godeye/onnx/flashocc_shaped_skip.onnx --iterations=200 --warmUp=2000 --avgRuns=100 --useSpinWait --separateProfileRun --memPoolSize=workspace:2048M --timingCacheFile=/home/sjsujetson/godeye/out/timing.cache --fp16
+    could not parse latency - raw log kept
+
+=== INT8 ===
+docker run --rm --runtime nvidia -v /home/sjsujetson/godeye:/home/sjsujetson/godeye -e LD_LIBRARY_PATH=/home/sjsujetson/godeye/lib:/usr/lib/aarch64-linux-gnu cmpelkk/jetson-llm:latest /usr/src/tensorrt/bin/trtexec --onnx=/home/sjsujetson/godeye/onnx/flashocc_shaped_skip.onnx --iterations=200 --warmUp=2000 --avgRuns=100 --useSpinWait --separateProfileRun --memPoolSize=workspace:2048M --timingCacheFile=/home/sjsujetson/godeye/out/timing.cache --int8
+    could not parse latency - raw log kept
+
+precision   median ms    p99 ms       qps   RAM MB      mW
+fp32           FAILED  
+fp16           FAILED  
+int8           FAILED  
+
+wrote /home/sjsujetson/godeye/out/15W/flashocc_shaped_skip/results.json

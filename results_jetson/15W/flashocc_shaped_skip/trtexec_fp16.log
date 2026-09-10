@@ -1,0 +1,200 @@
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 24.12 (build 126674151)
+PyTorch Version 2.6.0a0+df5bbc0
+Container image Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
+   insufficient for PyTorch.  NVIDIA recommends the use of the following flags:
+   docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
+
+&&&& RUNNING TensorRT.trtexec [TensorRT v100700] [b23] # /usr/src/tensorrt/bin/trtexec --onnx=/home/sjsujetson/godeye/onnx/flashocc_shaped_skip.onnx --iterations=200 --warmUp=2000 --avgRuns=100 --useSpinWait --separateProfileRun --memPoolSize=workspace:2048M --timingCacheFile=/home/sjsujetson/godeye/out/timing.cache --fp16
+[09/10/2026-04:14:20] [I] === Model Options ===
+[09/10/2026-04:14:20] [I] Format: ONNX
+[09/10/2026-04:14:20] [I] Model: /home/sjsujetson/godeye/onnx/flashocc_shaped_skip.onnx
+[09/10/2026-04:14:20] [I] Output:
+[09/10/2026-04:14:20] [I] === Build Options ===
+[09/10/2026-04:14:20] [I] Memory Pools: workspace: 2048 MiB, dlaSRAM: default, dlaLocalDRAM: default, dlaGlobalDRAM: default, tacticSharedMem: default
+[09/10/2026-04:14:20] [I] avgTiming: 8
+[09/10/2026-04:14:20] [I] Precision: FP32+FP16
+[09/10/2026-04:14:20] [I] LayerPrecisions: 
+[09/10/2026-04:14:20] [I] Layer Device Types: 
+[09/10/2026-04:14:20] [I] Calibration: 
+[09/10/2026-04:14:20] [I] Refit: Disabled
+[09/10/2026-04:14:20] [I] Strip weights: Disabled
+[09/10/2026-04:14:20] [I] Version Compatible: Disabled
+[09/10/2026-04:14:20] [I] ONNX Plugin InstanceNorm: Disabled
+[09/10/2026-04:14:20] [I] TensorRT runtime: full
+[09/10/2026-04:14:20] [I] Lean DLL Path: 
+[09/10/2026-04:14:20] [I] Tempfile Controls: { in_memory: allow, temporary: allow }
+[09/10/2026-04:14:20] [I] Exclude Lean Runtime: Disabled
+[09/10/2026-04:14:20] [I] Sparsity: Disabled
+[09/10/2026-04:14:20] [I] Safe mode: Disabled
+[09/10/2026-04:14:20] [I] Build DLA standalone loadable: Disabled
+[09/10/2026-04:14:20] [I] Allow GPU fallback for DLA: Disabled
+[09/10/2026-04:14:20] [I] DirectIO mode: Disabled
+[09/10/2026-04:14:20] [I] Restricted mode: Disabled
+[09/10/2026-04:14:20] [I] Skip inference: Disabled
+[09/10/2026-04:14:20] [I] Save engine: 
+[09/10/2026-04:14:20] [I] Load engine: 
+[09/10/2026-04:14:20] [I] Profiling verbosity: 0
+[09/10/2026-04:14:20] [I] Tactic sources: Using default tactic sources
+[09/10/2026-04:14:20] [I] timingCacheMode: global
+[09/10/2026-04:14:20] [I] timingCacheFile: /home/sjsujetson/godeye/out/timing.cache
+[09/10/2026-04:14:20] [I] Enable Compilation Cache: Enabled
+[09/10/2026-04:14:20] [I] Enable Monitor Memory: Disabled
+[09/10/2026-04:14:20] [I] errorOnTimingCacheMiss: Disabled
+[09/10/2026-04:14:20] [I] Preview Features: Use default preview flags.
+[09/10/2026-04:14:20] [I] MaxAuxStreams: -1
+[09/10/2026-04:14:20] [I] BuilderOptimizationLevel: -1
+[09/10/2026-04:14:20] [I] MaxTactics: -1
+[09/10/2026-04:14:20] [I] Calibration Profile Index: 0
+[09/10/2026-04:14:20] [I] Weight Streaming: Disabled
+[09/10/2026-04:14:20] [I] Runtime Platform: Same As Build
+[09/10/2026-04:14:20] [I] Debug Tensors: 
+[09/10/2026-04:14:20] [I] Input(s)s format: fp32:CHW
+[09/10/2026-04:14:20] [I] Output(s)s format: fp32:CHW
+[09/10/2026-04:14:20] [I] Input build shapes: model
+[09/10/2026-04:14:20] [I] Input calibration shapes: model
+[09/10/2026-04:14:20] [I] === System Options ===
+[09/10/2026-04:14:20] [I] Device: 0
+[09/10/2026-04:14:20] [I] DLACore: 
+[09/10/2026-04:14:20] [I] Plugins:
+[09/10/2026-04:14:20] [I] setPluginsToSerialize:
+[09/10/2026-04:14:20] [I] dynamicPlugins:
+[09/10/2026-04:14:20] [I] ignoreParsedPluginLibs: 0
+[09/10/2026-04:14:20] [I] 
+[09/10/2026-04:14:20] [I] === Inference Options ===
+[09/10/2026-04:14:20] [I] Batch: Explicit
+[09/10/2026-04:14:20] [I] Input inference shapes: model
+[09/10/2026-04:14:20] [I] Iterations: 200
+[09/10/2026-04:14:20] [I] Duration: 3s (+ 2000ms warm up)
+[09/10/2026-04:14:20] [I] Sleep time: 0ms
+[09/10/2026-04:14:20] [I] Idle time: 0ms
+[09/10/2026-04:14:20] [I] Inference Streams: 1
+[09/10/2026-04:14:20] [I] ExposeDMA: Disabled
+[09/10/2026-04:14:20] [I] Data transfers: Enabled
+[09/10/2026-04:14:20] [I] Spin-wait: Enabled
+[09/10/2026-04:14:20] [I] Multithreading: Disabled
+[09/10/2026-04:14:20] [I] CUDA Graph: Disabled
+[09/10/2026-04:14:20] [I] Separate profiling: Enabled
+[09/10/2026-04:14:20] [I] Time Deserialize: Disabled
+[09/10/2026-04:14:20] [I] Time Refit: Disabled
+[09/10/2026-04:14:20] [I] NVTX verbosity: 0
+[09/10/2026-04:14:20] [I] Persistent Cache Ratio: 0
+[09/10/2026-04:14:20] [I] Optimization Profile Index: 0
+[09/10/2026-04:14:20] [I] Weight Streaming Budget: 100.000000%
+[09/10/2026-04:14:20] [I] Inputs:
+[09/10/2026-04:14:20] [I] Debug Tensor Save Destinations:
+[09/10/2026-04:14:20] [I] === Reporting Options ===
+[09/10/2026-04:14:20] [I] Verbose: Disabled
+[09/10/2026-04:14:20] [I] Averages: 100 inferences
+[09/10/2026-04:14:20] [I] Percentiles: 90,95,99
+[09/10/2026-04:14:20] [I] Dump refittable layers:Disabled
+[09/10/2026-04:14:20] [I] Dump output: Disabled
+[09/10/2026-04:14:20] [I] Profile: Disabled
+[09/10/2026-04:14:20] [I] Export timing to JSON file: 
+[09/10/2026-04:14:20] [I] Export output to JSON file: 
+[09/10/2026-04:14:20] [I] Export profile to JSON file: 
+[09/10/2026-04:14:20] [I] 
+[09/10/2026-04:14:20] [I] === Device Information ===
+[09/10/2026-04:14:20] [I] Available Devices: 
+[09/10/2026-04:14:20] [I]   Device 0: "Orin" UUID: GPU-28009003-7470-53ad-b253-17b9853332d2
+[09/10/2026-04:14:20] [I] Selected Device: Orin
+[09/10/2026-04:14:20] [I] Selected Device ID: 0
+[09/10/2026-04:14:20] [I] Selected Device UUID: GPU-28009003-7470-53ad-b253-17b9853332d2
+[09/10/2026-04:14:20] [I] Compute Capability: 8.7
+[09/10/2026-04:14:20] [I] SMs: 8
+[09/10/2026-04:14:20] [I] Device Global Memory: 7485 MiB
+[09/10/2026-04:14:20] [I] Shared Memory per SM: 164 KiB
+[09/10/2026-04:14:20] [I] Memory Bus Width: 128 bits (ECC disabled)
+[09/10/2026-04:14:20] [I] Application Compute Clock Rate: 0.624 GHz
+[09/10/2026-04:14:20] [I] Application Memory Clock Rate: 0.624 GHz
+[09/10/2026-04:14:20] [I] 
+[09/10/2026-04:14:20] [I] Note: The application clock rates do not reflect the actual clock rates that the GPU is currently running at.
+[09/10/2026-04:14:20] [I] 
+[09/10/2026-04:14:20] [I] TensorRT version: 10.7.0
+[09/10/2026-04:14:20] [I] Loading standard plugins
+[09/10/2026-04:14:20] [I] [TRT] [MemUsageChange] Init CUDA: CPU +1, GPU +0, now: CPU 20, GPU 2411 (MiB)
+[09/10/2026-04:14:23] [I] [TRT] [MemUsageChange] Init builder kernel library: CPU +983, GPU +928, now: CPU 1062, GPU 3390 (MiB)
+[09/10/2026-04:14:23] [I] Start parsing network model.
+[09/10/2026-04:14:23] [I] [TRT] ----------------------------------------------------------------
+[09/10/2026-04:14:23] [I] [TRT] Input filename:   /home/sjsujetson/godeye/onnx/flashocc_shaped_skip.onnx
+[09/10/2026-04:14:23] [I] [TRT] ONNX IR version:  0.0.8
+[09/10/2026-04:14:23] [I] [TRT] Opset version:    17
+[09/10/2026-04:14:23] [I] [TRT] Producer name:    pytorch
+[09/10/2026-04:14:23] [I] [TRT] Producer version: 2.10.0
+[09/10/2026-04:14:23] [I] [TRT] Domain:           
+[09/10/2026-04:14:23] [I] [TRT] Model version:    0
+[09/10/2026-04:14:23] [I] [TRT] Doc string:       
+[09/10/2026-04:14:23] [I] [TRT] ----------------------------------------------------------------
+[09/10/2026-04:14:23] [I] Finished parsing network model. Parse time: 0.0690427
+[09/10/2026-04:14:23] [I] [TRT] Loaded 449548 bytes of timing cache from /home/sjsujetson/godeye/out/timing.cache
+[09/10/2026-04:14:23] [I] [TRT] Global timing cache in use. Profiling results in this builder pass will be stored.
+[09/10/2026-04:14:26] [I] [TRT] Detected 1 inputs and 1 output network tensors.
+[09/10/2026-04:14:28] [I] [TRT] Total Host Persistent Memory: 327536 bytes
+[09/10/2026-04:14:28] [I] [TRT] Total Device Persistent Memory: 0 bytes
+[09/10/2026-04:14:28] [I] [TRT] Max Scratch Memory: 0 bytes
+[09/10/2026-04:14:28] [I] [TRT] [BlockAssignment] Started assigning block shifts. This will take 153 steps to complete.
+[09/10/2026-04:14:28] [I] [TRT] [BlockAssignment] Algorithm ShiftNTopDown took 57.0734ms to assign 50 blocks to 153 nodes requiring 92311040 bytes.
+[09/10/2026-04:14:28] [I] [TRT] Total Activation Memory: 92310016 bytes
+[09/10/2026-04:14:28] [I] [TRT] Total Weights Memory: 29548608 bytes
+[09/10/2026-04:14:28] [I] [TRT] Engine generation completed in 4.73169 seconds.
+[09/10/2026-04:14:28] [I] [TRT] [MemUsageStats] Peak memory usage of TRT CPU/GPU memory allocators: CPU 4 MiB, GPU 50 MiB
+[09/10/2026-04:14:28] [I] Engine built in 4.76313 sec.
+[09/10/2026-04:14:28] [I] Created engine with size: 28.9915 MiB
+[09/10/2026-04:14:28] [I] [TRT] Loaded 449548 bytes of timing cache from /home/sjsujetson/godeye/out/timing.cache
+[09/10/2026-04:14:28] [I] [TRT] Serialized 27 bytes of code generator cache.
+[09/10/2026-04:14:28] [I] [TRT] Serialized 109392 bytes of compilation cache.
+[09/10/2026-04:14:28] [I] [TRT] Serialized 3315 timing cache entries
+[09/10/2026-04:14:28] [I] [TRT] Saved 454332 bytes of timing cache to /home/sjsujetson/godeye/out/timing.cache
+[09/10/2026-04:14:29] [I] [TRT] Loaded engine size: 28 MiB
+[09/10/2026-04:14:29] [I] Engine deserialized in 0.0284462 sec.
+[09/10/2026-04:14:29] [I] [TRT] [MemUsageChange] TensorRT-managed allocation in IExecutionContext creation: CPU +0, GPU +88, now: CPU 0, GPU 116 (MiB)
+[09/10/2026-04:14:29] [I] Setting persistentCacheLimit to 0 bytes.
+[09/10/2026-04:14:29] [I] Created execution context with device memory size: 88.0337 MiB
+[09/10/2026-04:14:29] [I] Using random values for input imgs
+[09/10/2026-04:14:29] [I] Input binding for imgs with dimensions 6x3x256x704 is created.
+[09/10/2026-04:14:29] [I] Output binding for occ with dimensions 1x16x18x200x200 is created.
+[09/10/2026-04:14:29] [I] Starting inference
+[09/10/2026-04:14:43] [I] Warmup completed 33 queries over 2000 ms
+[09/10/2026-04:14:43] [I] Timing trace has 200 queries over 12.3045 s
+[09/10/2026-04:14:43] [I] 
+[09/10/2026-04:14:43] [I] === Trace details ===
+[09/10/2026-04:14:43] [I] Trace averages of 100 runs:
+[09/10/2026-04:14:43] [I] Average on 100 runs - GPU latency: 61.2231 ms - Host latency: 65.7447 ms (enqueue 1.23228 ms)
+[09/10/2026-04:14:43] [I] Average on 100 runs - GPU latency: 61.2171 ms - Host latency: 65.7275 ms (enqueue 1.22979 ms)
+[09/10/2026-04:14:43] [I] 
+[09/10/2026-04:14:43] [I] === Performance summary ===
+[09/10/2026-04:14:43] [I] Throughput: 16.2542 qps
+[09/10/2026-04:14:43] [I] Latency: min = 64.4258 ms, max = 65.8416 ms, mean = 65.7361 ms, median = 65.7419 ms, percentile(90%) = 65.7852 ms, percentile(95%) = 65.7998 ms, percentile(99%) = 65.8252 ms
+[09/10/2026-04:14:43] [I] Enqueue Time: min = 1.18945 ms, max = 1.43311 ms, mean = 1.23103 ms, median = 1.22656 ms, percentile(90%) = 1.25684 ms, percentile(95%) = 1.26367 ms, percentile(99%) = 1.40527 ms
+[09/10/2026-04:14:43] [I] H2D Latency: min = 0.780273 ms, max = 0.828125 ms, mean = 0.793701 ms, median = 0.792969 ms, percentile(90%) = 0.801758 ms, percentile(95%) = 0.806641 ms, percentile(99%) = 0.818359 ms
+[09/10/2026-04:14:43] [I] GPU Compute Time: min = 61.0195 ms, max = 61.3057 ms, mean = 61.2201 ms, median = 61.2207 ms, percentile(90%) = 61.2568 ms, percentile(95%) = 61.2668 ms, percentile(99%) = 61.2974 ms
+[09/10/2026-04:14:43] [I] D2H Latency: min = 2.60938 ms, max = 3.78418 ms, mean = 3.72227 ms, median = 3.72473 ms, percentile(90%) = 3.74512 ms, percentile(95%) = 3.75098 ms, percentile(99%) = 3.75977 ms
+[09/10/2026-04:14:43] [I] Total Host Walltime: 12.3045 s
+[09/10/2026-04:14:43] [I] Total GPU Compute Time: 12.244 s
+[09/10/2026-04:14:43] [I] Explanations of the performance metrics are printed in the verbose logs.
+[09/10/2026-04:14:43] [I] 
+&&&& PASSED TensorRT.trtexec [TensorRT v100700] [b23] # /usr/src/tensorrt/bin/trtexec --onnx=/home/sjsujetson/godeye/onnx/flashocc_shaped_skip.onnx --iterations=200 --warmUp=2000 --avgRuns=100 --useSpinWait --separateProfileRun --memPoolSize=workspace:2048M --timingCacheFile=/home/sjsujetson/godeye/out/timing.cache --fp16
