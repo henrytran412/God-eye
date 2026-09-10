@@ -236,6 +236,11 @@ def parse_trtexec(log: str) -> dict:
     m = re.search(r"Throughput: ([\d.]+) qps", log)
     if m:
         res["throughput_qps"] = float(m.group(1))
+    for name, pat in (("h2d", r"H2D Latency: .*?median = ([\d.]+) ms"),
+                      ("d2h", r"D2H Latency: .*?median = ([\d.]+) ms")):
+        m = re.search(pat, log, re.S)
+        if m:
+            res[f"{name}_median_ms"] = float(m.group(1))
     m = re.search(r"Latency: min = ([\d.]+) ms.*?median = ([\d.]+) ms", log, re.S)
     if m:
         res["e2e_min_ms"] = float(m.group(1))
@@ -245,10 +250,16 @@ def parse_trtexec(log: str) -> dict:
 
 def bench_one(trtexec: list[str], onnx: pathlib.Path, precision: str,
               iterations: int, warmup_ms: int, workspace_mb: int,
-              outdir: pathlib.Path, extra: list[str]) -> dict:
+              outdir: pathlib.Path, extra: list[str],
+              timing_cache: str = "") -> dict:
     cmd = [*trtexec, f"--onnx={onnx}", f"--iterations={iterations}",
-           f"--warmUp={warmup_ms}", "--avgRuns=100", "--noDataTransfers",
+           f"--warmUp={warmup_ms}", "--avgRuns=100",
            "--useSpinWait", "--separateProfileRun"]
+    # NOT --noDataTransfers. With host<->device copies enabled trtexec reports
+    # BOTH "Latency" (end-to-end, what a frame actually costs) AND "GPU Compute
+    # Time" (pure inference); with the flag on you only get the latter. On a
+    # unified-memory Jetson the copies are partly an artifact of trtexec's
+    # harness, so both numbers are worth having and neither alone is honest.
     # memory-pool flag name changed across TensorRT majors; pass both forms and
     # let trtexec ignore the one it does not recognise is NOT safe -- it errors.
     # So pick based on --help text.
@@ -257,6 +268,14 @@ def bench_one(trtexec: list[str], onnx: pathlib.Path, precision: str,
         cmd.append(f"--memPoolSize=workspace:{workspace_mb}M")
     elif "--workspace" in help_txt:
         cmd.append(f"--workspace={workspace_mb}")
+
+    if timing_cache:
+        # Tactic timings are reused across precisions and models. On an 8-SM
+        # Orin Nano the builder spends most of its wall-clock timing candidate
+        # kernels, and an unlocked-clock build of a 200x200 BEV encoder took
+        # ~30 min. The cache does not change the chosen engine's latency, only
+        # how long it takes to find it.
+        cmd.append(f"--timingCacheFile={timing_cache}")
 
     if precision == "fp16":
         cmd.append("--fp16")
@@ -323,6 +342,8 @@ def main() -> int:
     ap.add_argument("--stub-lib", default="",
                     help="dir holding a stub libnvdla_compiler.so, put first on "
                          "LD_LIBRARY_PATH inside the container")
+    ap.add_argument("--timing-cache", default="",
+                    help="shared trtexec timing cache; must be inside --mount")
     ap.add_argument("--mount", default="",
                     help="host dir bind-mounted at the same path in the container "
                          "(default: parent of --onnx)")
@@ -363,7 +384,7 @@ def main() -> int:
     for p in args.precisions:
         results.append(bench_one(trtexec, onnx, p, args.iterations,
                                  args.warmup_ms, args.workspace_mb, outdir,
-                                 args.extra))
+                                 args.extra, args.timing_cache))
 
     payload = {"device": info, "onnx": str(onnx), "tag": args.tag,
                "iterations": args.iterations, "results": results}
