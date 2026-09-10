@@ -1,0 +1,267 @@
+=== build finished, 4 engine(s) ===
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 24.12 (build 126674151)
+PyTorch Version 2.6.0a0+df5bbc0
+Container image Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
+   insufficient for PyTorch.  NVIDIA recommends the use of the following flags:
+   docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
+
+==========================================================
+||  MODEL: resnet50int8
+||  PRECISION: int8
+||  DATA: example-data
+||  USEPython: OFF
+||
+||  TensorRT: /usr/lib/aarch64-linux-gnu
+||  CUDA: /usr/local/cuda
+||  CUDNN: /usr/lib/aarch64-linux-gnu
+==========================================================
+Try to get the current device SM
+Current CUDA SM: 87
+Configuration done!
+CMake Deprecation Warning at CMakeLists.txt:22 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- The C compiler identification is GNU 13.2.0
+-- The CXX compiler identification is GNU 13.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+CMake Warning (dev) at CMakeLists.txt:30 (find_package):
+  Policy CMP0146 is not set: The FindCUDA module is removed.  Run "cmake
+  --help-policy CMP0146" for policy details.  Use the cmake_policy command to
+  set the policy and suppress this warning.
+
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Found CUDA: /usr/local/cuda (found version "12.6")
+-- Found Protobuf: /usr/lib/aarch64-linux-gnu/libprotobuf.so (found version "3.21.12")
+-- spconv_lib = ../libraries/3DSparseConvolution/libspconv/lib/aarch64_cuda12.8
+-- Configuring done (0.9s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/build
+[  3%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/common/bevfusion_core_generated_tensor.cu.o
+[  7%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_camera-backbone.cu.o
+[ 11%] Building NVCC (Device) object CMakeFiles/custom_layernorm.dir/src/plugins/custom_layernorm_generated_custom_layernorm.cu.o
+[ 14%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_camera-depth.cu.o
+[ 18%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_camera-bevpool.cu.o
+[ 22%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_camera-normalization.cu.o
+[ 25%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_camera-vtransform.cu.o
+[ 29%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_lidar-voxelization.cu.o
+[ 33%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_camera-geometry.cu.o
+[ 37%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_head-transbbox.cu.o
+[ 40%] Building NVCC (Device) object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion_core_generated_transfusion.cu.o
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/plugins/custom_layernorm.cu(103): warning #997-D: function "nvinfer1::IPluginV2::getOutputDimensions(int32_t, const nvinfer1::Dims *, int32_t) noexcept" is hidden by "LayerNormPlugin::getOutputDimensions" -- virtual function override intended?
+      virtual DimsExprs getOutputDimensions(
+                        ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/plugins/custom_layernorm.cu(117): warning #997-D: function "nvinfer1::IPluginV2::getWorkspaceSize(int32_t) const noexcept" is hidden by "LayerNormPlugin::getWorkspaceSize" -- virtual function override intended?
+      virtual size_t getWorkspaceSize(PluginTensorDesc const* inputs, int32_t nbInputs, PluginTensorDesc const* outputs,
+                     ^
+
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/plugins/custom_layernorm.cu(122): warning #997-D: function "nvinfer1::IPluginV2::enqueue(int32_t, const void *const *, void *const *, void *, cudaStream_t) noexcept" is hidden by "LayerNormPlugin::enqueue" -- virtual function override intended?
+      virtual int32_t enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc const* outputDesc,
+                      ^
+
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/plugins/custom_layernorm.cu(113): warning #997-D: function "nvinfer1::IPluginV2Ext::configurePlugin(const nvinfer1::Dims *, int32_t, const nvinfer1::Dims *, int32_t, const nvinfer1::DataType *, const nvinfer1::DataType *, const bool *, const bool *, nvinfer1::PluginFormat, int32_t) noexcept" is hidden by "LayerNormPlugin::configurePlugin" -- virtual function override intended?
+      virtual void configurePlugin(DynamicPluginTensorDesc const* in, int32_t nbInputs,
+                   ^
+
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/plugins/custom_layernorm.cu(103): warning #997-D: function "nvinfer1::IPluginV2::getOutputDimensions(int32_t, const nvinfer1::Dims *, int32_t) noexcept" is hidden by "LayerNormPlugin::getOutputDimensions" -- virtual function override intended?
+      virtual DimsExprs getOutputDimensions(
+                        ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/plugins/custom_layernorm.cu(117): warning #997-D: function "nvinfer1::IPluginV2::getWorkspaceSize(int32_t) const noexcept" is hidden by "LayerNormPlugin::getWorkspaceSize" -- virtual function override intended?
+      virtual size_t getWorkspaceSize(PluginTensorDesc const* inputs, int32_t nbInputs, PluginTensorDesc const* outputs,
+                     ^
+
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/plugins/custom_layernorm.cu(122): warning #997-D: function "nvinfer1::IPluginV2::enqueue(int32_t, const void *const *, void *const *, void *, cudaStream_t) noexcept" is hidden by "LayerNormPlugin::enqueue" -- virtual function override intended?
+      virtual int32_t enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc const* outputDesc,
+                      ^
+
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/plugins/custom_layernorm.cu(113): warning #997-D: function "nvinfer1::IPluginV2Ext::configurePlugin(const nvinfer1::Dims *, int32_t, const nvinfer1::Dims *, int32_t, const nvinfer1::DataType *, const nvinfer1::DataType *, const __nv_bool *, const __nv_bool *, nvinfer1::PluginFormat, int32_t) noexcept" is hidden by "LayerNormPlugin::configurePlugin" -- virtual function override intended?
+      virtual void configurePlugin(DynamicPluginTensorDesc const* in, int32_t nbInputs,
+                   ^
+
+[ 44%] Linking CXX shared library libcustom_layernorm.so
+[ 44%] Built target custom_layernorm
+[ 55%] Building CXX object CMakeFiles/bevfusion_core.dir/src/bevfusion/lidar-scn.cpp.o
+[ 55%] Building CXX object CMakeFiles/bevfusion_core.dir/src/bevfusion/bevfusion.cpp.o
+[ 55%] Building CXX object CMakeFiles/bevfusion_core.dir/src/bevfusion/lidar-scn-onnx-parser.cpp.o
+[ 59%] Building CXX object CMakeFiles/bevfusion_core.dir/src/common/tensorrt.cpp.o
+[ 62%] Building CXX object CMakeFiles/bevfusion_core.dir/src/onnx/onnx-ml.pb.cpp.o
+[ 66%] Building CXX object CMakeFiles/bevfusion_core.dir/src/onnx/onnx-operators-ml.pb.cpp.o
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/bevfusion/lidar-scn-onnx-parser.cpp: In function ‘std::vector<int> spconv::get_attribute_as_intarray(const onnx::NodeProto&, const std::string&)’:
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/bevfusion/lidar-scn-onnx-parser.cpp:96:26: warning: comparison of integer expressions of different signedness: ‘size_t’ {aka ‘long unsigned int’} and ‘int’ [-Wsign-compare]
+   96 |     for (size_t i = 0; i < ints.size(); ++i)
+      |                        ~~^~~~~~~~~~~~~
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/bevfusion/lidar-scn-onnx-parser.cpp: In function ‘std::shared_ptr<spconv::Engine> spconv::load_engine_from_onnx(const std::string&, Precision, bool, bool, bool, unsigned int, void*)’:
+/home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/src/bevfusion/lidar-scn-onnx-parser.cpp:227:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<spconv::ITensor*>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  227 |     for (int i = 0; i < collect_outputs.size(); ++i) {
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~~
+[ 70%] Linking CXX shared library libbevfusion_core.so
+[ 70%] Built target bevfusion_core
+[ 77%] Building NVCC (Device) object CMakeFiles/bevfusion.dir/src/common/bevfusion_generated_visualize.cu.o
+[ 77%] Building NVCC (Device) object CMakeFiles/bevfusion.dir/__/libraries/cuOSD/src/bevfusion_generated_cuosd_kernel.cu.o
+[ 88%] Building CXX object CMakeFiles/bevfusion.dir/home/sjsujetson/Lidar_AI_Solution/libraries/cuOSD/src/cuosd.cpp.o
+[ 88%] Building CXX object CMakeFiles/bevfusion.dir/src/main.cpp.o
+[ 88%] Building CXX object CMakeFiles/bevfusion.dir/home/sjsujetson/Lidar_AI_Solution/libraries/cuOSD/src/textbackend/backend.cpp.o
+[ 92%] Building CXX object CMakeFiles/bevfusion.dir/home/sjsujetson/Lidar_AI_Solution/libraries/cuOSD/src/textbackend/pango-cairo.cpp.o
+[ 96%] Building CXX object CMakeFiles/bevfusion.dir/home/sjsujetson/Lidar_AI_Solution/libraries/cuOSD/src/textbackend/stb.cpp.o
+[100%] Linking CXX executable bevfusion
+[100%] Built target bevfusion
+Create by resnet50int8, int8
+------------------------------------------------------
+Camerea Backbone 🌱 is Static Shape model
+Inputs: 2
+	0.img : {1 x 6 x 3 x 256 x 704} [float16]
+	1.depth : {1 x 6 x 1 x 256 x 704} [float16]
+Outputs: 2
+	0.camera_feature : {6 x 32 x 88 x 80} [float16]
+	1.camera_depth_weights : {6 x 118 x 32 x 88} [float16]
+------------------------------------------------------
+------------------------------------------------------
+Camerea VTransform 🌱 is Static Shape model
+Inputs: 1
+	0.feat_in : {1 x 80 x 360 x 360} [float16]
+Outputs: 1
+	0.feat_out : {1 x 80 x 180 x 180} [float16]
+------------------------------------------------------
+------------------------------------------------------
+Transfusion 🌱 is Static Shape model
+Inputs: 2
+	0.camera : {1 x 80 x 180 x 180} [float16]
+	1.lidar : {1 x 256 x 180 x 180} [float16]
+Outputs: 1
+	0.middle : {1 x 512 x 180 x 180} [float16]
+------------------------------------------------------
+------------------------------------------------------
+BBox 🌱 is Static Shape model
+Inputs: 1
+	0.middle : {1 x 512 x 180 x 180} [float16]
+Outputs: 6
+	0.score : {1 x 10 x 200} [float16]
+	1.rot : {1 x 2 x 200} [float16]
+	2.dim : {1 x 3 x 200} [float16]
+	3.reg : {1 x 2 x 200} [float16]
+	4.height : {1 x 1 x 200} [float16]
+	5.vel : {1 x 2 x 200} [float16]
+------------------------------------------------------
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	1.52336 ms
+[⏰ [NoSt] ImageNrom]: 	95.15257 ms
+[⏰ Lidar Backbone]: 	201.77869 ms
+[⏰ Camera Depth]: 	44.36102 ms
+[⏰ Camera Backbone]: 	44.28899 ms
+[⏰ Camera Bevpool]: 	56.03485 ms
+[⏰ VTransform]: 	6.28934 ms
+[⏰ Transfusion]: 	15.89235 ms
+[⏰ Head BoundingBox]: 	67.50986 ms
+Total: 436.155 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.59347 ms
+[⏰ [NoSt] ImageNrom]: 	5.95165 ms
+[⏰ Lidar Backbone]: 	46.25715 ms
+[⏰ Camera Depth]: 	0.34141 ms
+[⏰ Camera Backbone]: 	29.44896 ms
+[⏰ Camera Bevpool]: 	6.39731 ms
+[⏰ VTransform]: 	6.09853 ms
+[⏰ Transfusion]: 	15.41558 ms
+[⏰ Head BoundingBox]: 	14.53597 ms
+Total: 118.495 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.56717 ms
+[⏰ [NoSt] ImageNrom]: 	5.90762 ms
+[⏰ Lidar Backbone]: 	46.54832 ms
+[⏰ Camera Depth]: 	0.34259 ms
+[⏰ Camera Backbone]: 	29.44493 ms
+[⏰ Camera Bevpool]: 	6.52576 ms
+[⏰ VTransform]: 	6.09091 ms
+[⏰ Transfusion]: 	15.40106 ms
+[⏰ Head BoundingBox]: 	14.53552 ms
+Total: 118.889 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.59379 ms
+[⏰ [NoSt] ImageNrom]: 	5.92730 ms
+[⏰ Lidar Backbone]: 	46.35139 ms
+[⏰ Camera Depth]: 	0.34362 ms
+[⏰ Camera Backbone]: 	29.44854 ms
+[⏰ Camera Bevpool]: 	6.58109 ms
+[⏰ VTransform]: 	6.08928 ms
+[⏰ Transfusion]: 	15.38819 ms
+[⏰ Head BoundingBox]: 	14.57366 ms
+Total: 118.776 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.56864 ms
+[⏰ [NoSt] ImageNrom]: 	5.92982 ms
+[⏰ Lidar Backbone]: 	46.32563 ms
+[⏰ Camera Depth]: 	0.34240 ms
+[⏰ Camera Backbone]: 	29.44486 ms
+[⏰ Camera Bevpool]: 	6.54358 ms
+[⏰ VTransform]: 	6.08698 ms
+[⏰ Transfusion]: 	15.40352 ms
+[⏰ Head BoundingBox]: 	14.55712 ms
+Total: 118.704 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.56912 ms
+[⏰ [NoSt] ImageNrom]: 	5.98262 ms
+[⏰ Lidar Backbone]: 	46.55952 ms
+[⏰ Camera Depth]: 	0.34147 ms
+[⏰ Camera Backbone]: 	29.49712 ms
+[⏰ Camera Bevpool]: 	6.44112 ms
+[⏰ VTransform]: 	6.08621 ms
+[⏰ Transfusion]: 	15.39642 ms
+[⏰ Head BoundingBox]: 	14.55936 ms
+Total: 118.881 ms
+=============================================
+Save to build/cuda-bevfusion.jpg
+[Warning]: If you got an inaccurate boundingbox result please turn on the layernormplugin plan. (main.cpp:207)
