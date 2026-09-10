@@ -52,6 +52,32 @@ def find_trtexec() -> str | None:
     return None
 
 
+def trtexec_command(docker_image: str, stub_lib: str, mount: str) -> list[str] | None:
+    """Return the argv PREFIX that invokes trtexec, host-native or in a container.
+
+    On JetPack 7 (L4T r39.x) the host ships no TensorRT at all -- the stack lives
+    in a JetPack 6 container. Two consequences handled here:
+
+    * The container is mounted at the SAME absolute path as the host directory,
+      so every --onnx=/abs/path argument resolves identically either way and the
+      rest of this script needs no path translation.
+    * Orin Nano has no DLA hardware, so JetPack 7 does not ship
+      libnvdla_compiler.so -- but the host's drivers.csv still lists it, so
+      nvidia-container-runtime truncates the container's copy to 0 bytes and
+      libnvinfer.so.10 (which DT_NEEDEDs it) fails to load. --stub-lib puts a
+      directory holding a generated stub first on LD_LIBRARY_PATH. Nothing in
+      the stub is ever called; there is no DLA to compile for.
+    """
+    if not docker_image:
+        found = find_trtexec()
+        return [found] if found else None
+    cmd = ["docker", "run", "--rm", "--runtime", "nvidia", "-v", f"{mount}:{mount}"]
+    if stub_lib:
+        cmd += ["-e", f"LD_LIBRARY_PATH={stub_lib}:/usr/lib/aarch64-linux-gnu"]
+    cmd += [docker_image, "/usr/src/tensorrt/bin/trtexec"]
+    return cmd
+
+
 # ---------------------------------------------------------------- device info
 
 
@@ -217,16 +243,16 @@ def parse_trtexec(log: str) -> dict:
     return res
 
 
-def bench_one(trtexec: str, onnx: pathlib.Path, precision: str,
+def bench_one(trtexec: list[str], onnx: pathlib.Path, precision: str,
               iterations: int, warmup_ms: int, workspace_mb: int,
               outdir: pathlib.Path, extra: list[str]) -> dict:
-    cmd = [trtexec, f"--onnx={onnx}", f"--iterations={iterations}",
+    cmd = [*trtexec, f"--onnx={onnx}", f"--iterations={iterations}",
            f"--warmUp={warmup_ms}", "--avgRuns=100", "--noDataTransfers",
            "--useSpinWait", "--separateProfileRun"]
     # memory-pool flag name changed across TensorRT majors; pass both forms and
     # let trtexec ignore the one it does not recognise is NOT safe -- it errors.
     # So pick based on --help text.
-    help_txt = run_quiet([trtexec, "--help"]) or ""
+    help_txt = run_quiet([*trtexec, "--help"]) or ""
     if "--memPoolSize" in help_txt:
         cmd.append(f"--memPoolSize=workspace:{workspace_mb}M")
     elif "--workspace" in help_txt:
@@ -291,6 +317,15 @@ def main() -> int:
     ap.add_argument("--workspace-mb", type=int, default=2048)
     ap.add_argument("--outdir", default="bench_out")
     ap.add_argument("--tag", default="", help="label for this run, e.g. '15W'")
+    ap.add_argument("--docker-image", default="",
+                    help="run trtexec inside this image (JetPack 7 hosts have no "
+                         "host TensorRT); e.g. cmpelkk/jetson-llm:latest")
+    ap.add_argument("--stub-lib", default="",
+                    help="dir holding a stub libnvdla_compiler.so, put first on "
+                         "LD_LIBRARY_PATH inside the container")
+    ap.add_argument("--mount", default="",
+                    help="host dir bind-mounted at the same path in the container "
+                         "(default: parent of --onnx)")
     ap.add_argument("--extra", nargs=argparse.REMAINDER, default=[],
                     help="extra flags passed through to trtexec")
     args = ap.parse_args()
@@ -299,11 +334,15 @@ def main() -> int:
     if not onnx.exists():
         print(f"ERROR: {onnx} not found")
         return 1
-    trtexec = find_trtexec()
+    onnx = onnx.resolve()
+    mount = args.mount or str(onnx.parent)
+    trtexec = trtexec_command(args.docker_image, args.stub_lib, mount)
     if not trtexec:
         print("ERROR: trtexec not found. On JetPack it is usually at")
         print("       /usr/src/tensorrt/bin/trtexec")
         print("       Install with: sudo apt install tensorrt")
+        print("       On JetPack 7 the host ships no TensorRT; the stack is in a")
+        print("       container. Re-run with --docker-image <image> --stub-lib <dir>.")
         return 1
 
     outdir = pathlib.Path(args.outdir)
@@ -315,7 +354,7 @@ def main() -> int:
         if v is not None:
             print(f"  {k:12s} {v}")
     print(f"\nonnx: {onnx.name} ({onnx.stat().st_size/1e6:.1f} MB)")
-    print(f"trtexec: {trtexec}")
+    print(f"trtexec: {' '.join(trtexec)}")
     if info.get("mem_total_kb") and info["mem_total_kb"] < 9_000_000:
         print("\nNOTE: <9 GB total RAM. If engine builds are killed by the OOM "
               "reaper, lower --workspace-mb or add a swapfile.")

@@ -37,7 +37,8 @@ currently holds the feasibility work being done to support it.
 | Research direction | Settled — perception only |
 | Datasets | DAIR-V2X-I complete (7,058 frames, assembled); nuScenes example ships with BEVFusion |
 | ONNX export path | Verified against PyTorch |
-| Jetson benchmark harness | Written, parser unit-tested, **not yet run on hardware** |
+| Jetson board | Orin Nano, JetPack 7 / L4T r39.2, TensorRT 10.7 in container — reachable, TensorRT working (see `JETSON_SETUP.md`) |
+| Jetson benchmark harness | Runs; first engine build in progress |
 | Accuracy results | **None yet** |
 
 ## Repository map
