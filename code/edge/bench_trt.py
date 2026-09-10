@@ -226,7 +226,10 @@ def parse_trtexec(log: str) -> dict:
     # "GPU Compute Time: min = ... max = ... mean = ... median = ... percentile(99%) = ..."
     block = ""
     for line in log.splitlines():
-        if "GPU Compute Time" in line:
+        # "Total GPU Compute Time: 9.86 s" also contains the phrase but carries
+        # no percentile breakdown, and it comes LAST -- matching it silently
+        # dropped every gpu_* metric. Require the stats line.
+        if "GPU Compute Time" in line and "min =" in line:
             block = line
     target = block or log
     for name, pat in LAT_KEYS.items():
