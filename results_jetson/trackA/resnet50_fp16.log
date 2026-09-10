@@ -1,0 +1,199 @@
+### resnet50 / fp16
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 24.12 (build 126674151)
+PyTorch Version 2.6.0a0+df5bbc0
+Container image Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
+   insufficient for PyTorch.  NVIDIA recommends the use of the following flags:
+   docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
+
+==========================================================
+||  MODEL: resnet50
+||  PRECISION: fp16
+||  DATA: example-data
+||  USEPython: OFF
+||
+||  TensorRT: /usr/lib/aarch64-linux-gnu
+||  CUDA: /usr/local/cuda
+||  CUDNN: /usr/lib/aarch64-linux-gnu
+==========================================================
+Try to get the current device SM
+Current CUDA SM: 87
+Configuration done!
+Building the model: model/resnet50/build/camera.backbone.plan, this will take several minutes. Wait a moment 🤗🤗🤗~.
+Building the model: model/resnet50/build/fuser.plan, this will take several minutes. Wait a moment 🤗🤗🤗~.
+Building the model: model/resnet50/build/camera.vtransform.plan, this will take several minutes. Wait a moment 🤗🤗🤗~.
+Building the model: model/resnet50/build/head.bbox.plan, this will take several minutes. Wait a moment 🤗🤗🤗~.
+==========================================================
+||  MODEL: resnet50
+||  PRECISION: fp16
+||  DATA: example-data
+||  USEPython: OFF
+||
+||  TensorRT: /usr/lib/aarch64-linux-gnu
+||  CUDA: /usr/local/cuda
+||  CUDNN: /usr/lib/aarch64-linux-gnu
+==========================================================
+Try to get the current device SM
+Current CUDA SM: 87
+Configuration done!
+CMake Deprecation Warning at CMakeLists.txt:22 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Warning (dev) at CMakeLists.txt:30 (find_package):
+  Policy CMP0146 is not set: The FindCUDA module is removed.  Run "cmake
+  --help-policy CMP0146" for policy details.  Use the cmake_policy command to
+  set the policy and suppress this warning.
+
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- spconv_lib = ../libraries/3DSparseConvolution/libspconv/lib/aarch64_cuda12.8
+-- Configuring done (0.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/sjsujetson/Lidar_AI_Solution/CUDA-BEVFusion/build
+[  3%] Linking CXX shared library libcustom_layernorm.so
+[  7%] Linking CXX shared library libbevfusion_core.so
+[ 11%] Built target custom_layernorm
+[ 70%] Built target bevfusion_core
+[ 74%] Linking CXX executable bevfusion
+[100%] Built target bevfusion
+Create by resnet50, fp16
+------------------------------------------------------
+Camerea Backbone 🌱 is Static Shape model
+Inputs: 2
+	0.img : {1 x 6 x 3 x 256 x 704} [float16]
+	1.depth : {1 x 6 x 1 x 256 x 704} [float16]
+Outputs: 2
+	0.camera_feature : {6 x 32 x 88 x 80} [float16]
+	1.camera_depth_weights : {6 x 118 x 32 x 88} [float16]
+------------------------------------------------------
+------------------------------------------------------
+Camerea VTransform 🌱 is Static Shape model
+Inputs: 1
+	0.feat_in : {1 x 80 x 360 x 360} [float16]
+Outputs: 1
+	0.feat_out : {1 x 80 x 180 x 180} [float16]
+------------------------------------------------------
+------------------------------------------------------
+Transfusion 🌱 is Static Shape model
+Inputs: 2
+	0.camera : {1 x 80 x 180 x 180} [float16]
+	1.lidar : {1 x 256 x 180 x 180} [float16]
+Outputs: 1
+	0.middle : {1 x 512 x 180 x 180} [float16]
+------------------------------------------------------
+------------------------------------------------------
+BBox 🌱 is Static Shape model
+Inputs: 1
+	0.middle : {1 x 512 x 180 x 180} [float16]
+Outputs: 6
+	0.score : {1 x 10 x 200} [float16]
+	1.rot : {1 x 2 x 200} [float16]
+	2.dim : {1 x 3 x 200} [float16]
+	3.reg : {1 x 2 x 200} [float16]
+	4.height : {1 x 1 x 200} [float16]
+	5.vel : {1 x 2 x 200} [float16]
+------------------------------------------------------
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	1.56902 ms
+[⏰ [NoSt] ImageNrom]: 	94.36118 ms
+[⏰ Lidar Backbone]: 	221.17174 ms
+[⏰ Camera Depth]: 	46.33581 ms
+[⏰ Camera Backbone]: 	116.19632 ms
+[⏰ Camera Bevpool]: 	56.68883 ms
+[⏰ VTransform]: 	6.53328 ms
+[⏰ Transfusion]: 	23.86886 ms
+[⏰ Head BoundingBox]: 	81.12813 ms
+Total: 551.923 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.57478 ms
+[⏰ [NoSt] ImageNrom]: 	6.02304 ms
+[⏰ Lidar Backbone]: 	66.47190 ms
+[⏰ Camera Depth]: 	0.34365 ms
+[⏰ Camera Backbone]: 	51.52605 ms
+[⏰ Camera Bevpool]: 	6.52781 ms
+[⏰ VTransform]: 	6.08829 ms
+[⏰ Transfusion]: 	23.68589 ms
+[⏰ Head BoundingBox]: 	14.67827 ms
+Total: 169.322 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.57802 ms
+[⏰ [NoSt] ImageNrom]: 	5.87773 ms
+[⏰ Lidar Backbone]: 	66.40989 ms
+[⏰ Camera Depth]: 	0.35069 ms
+[⏰ Camera Backbone]: 	51.46458 ms
+[⏰ Camera Bevpool]: 	6.47491 ms
+[⏰ VTransform]: 	6.07667 ms
+[⏰ Transfusion]: 	23.72128 ms
+[⏰ Head BoundingBox]: 	14.57901 ms
+Total: 169.077 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.57510 ms
+[⏰ [NoSt] ImageNrom]: 	5.93171 ms
+[⏰ Lidar Backbone]: 	66.31200 ms
+[⏰ Camera Depth]: 	0.34198 ms
+[⏰ Camera Backbone]: 	51.40816 ms
+[⏰ Camera Bevpool]: 	6.47776 ms
+[⏰ VTransform]: 	6.07581 ms
+[⏰ Transfusion]: 	23.69155 ms
+[⏰ Head BoundingBox]: 	14.56170 ms
+Total: 168.869 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.57008 ms
+[⏰ [NoSt] ImageNrom]: 	5.85914 ms
+[⏰ Lidar Backbone]: 	66.33340 ms
+[⏰ Camera Depth]: 	0.34157 ms
+[⏰ Camera Backbone]: 	51.40250 ms
+[⏰ Camera Bevpool]: 	6.47888 ms
+[⏰ VTransform]: 	6.08224 ms
+[⏰ Transfusion]: 	23.69248 ms
+[⏰ Head BoundingBox]: 	14.55680 ms
+Total: 168.888 ms
+=============================================
+==================BEVFusion===================
+[⏰ [NoSt] CopyLidar]: 	0.55088 ms
+[⏰ [NoSt] ImageNrom]: 	5.85789 ms
+[⏰ Lidar Backbone]: 	66.28793 ms
+[⏰ Camera Depth]: 	0.34170 ms
+[⏰ Camera Backbone]: 	51.44963 ms
+[⏰ Camera Bevpool]: 	6.56858 ms
+[⏰ VTransform]: 	6.07850 ms
+[⏰ Transfusion]: 	23.68112 ms
+[⏰ Head BoundingBox]: 	14.53853 ms
+Total: 168.946 ms
+=============================================
+Save to build/cuda-bevfusion.jpg
+[Warning]: If you got an inaccurate boundingbox result please turn on the layernormplugin plan. (main.cpp:207)
