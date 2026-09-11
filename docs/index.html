@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orientation Is What Breaks</title>
+<meta name="description" content="A week of measurements on a Jetson Orin Nano: what cross-dataset shift costs a roadside 3D detector, and which part of the network actually fails.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ink:#0E1417; --paper:#F6F8F8; --surface:#FFFFFF; --surface-2:#EDF1F1;
+  --muted:#5C6B70; --faint:#7E8C90; --rule:#D8E0E1;
+  --source:#0F6E78; --source-soft:#DCEBED;
+  --target:#B4531F; --target-soft:#F6E6DA;
+  --good:#2E7D52; --warn:#8A6410; --crit:#A03428;
+  --shadow:0 1px 2px rgba(14,20,23,.06);
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --measure:68ch;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#E4EAEB; --paper:#0B1012; --surface:#131A1D; --surface-2:#1A2326;
+    --muted:#9AA8AC; --faint:#7C8A8E; --rule:#253134;
+    --source:#3FAAB6; --source-soft:#0E2C30;
+    --target:#DE8A4E; --target-soft:#33200F;
+    --good:#5BB183; --warn:#C79A3A; --crit:#D6685A;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#E4EAEB; --paper:#0B1012; --surface:#131A1D; --surface-2:#1A2326;
+  --muted:#9AA8AC; --faint:#7C8A8E; --rule:#253134;
+  --source:#3FAAB6; --source-soft:#0E2C30;
+  --target:#DE8A4E; --target-soft:#33200F;
+  --good:#5BB183; --warn:#C79A3A; --crit:#D6685A;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:16.5px; line-height:1.62;
+  padding-inline:20px; padding-block:0;
+}
+.wrap{max-width:980px; margin:0 auto}
+p,li{max-width:var(--measure)}
+h1,h2,h3{font-family:var(--serif); font-weight:500; text-wrap:balance; margin:0}
+a{color:var(--source)}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--source); outline-offset:3px; border-radius:2px}
+
+/* ---- masthead ---- */
+header.mast{padding-block:64px 40px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 20px}
+h1{font-size:clamp(34px,5.4vw,56px); line-height:1.05; letter-spacing:-.015em; max-width:17ch}
+.standfirst{font-family:var(--serif); font-size:clamp(18px,2.4vw,22px); line-height:1.5;
+  color:var(--muted); margin:20px 0 0; max-width:54ch}
+.byline{display:flex; flex-wrap:wrap; gap:8px 28px; margin-top:30px;
+  font-family:var(--mono); font-size:12px; color:var(--faint)}
+.byline b{color:var(--ink); font-weight:500}
+
+/* ---- key figures ---- */
+.figures{display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); margin:38px 0 0}
+.fig{background:var(--surface); padding:18px 18px 16px}
+.fig .n{font-family:var(--mono); font-size:27px; font-weight:600; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; line-height:1.1; display:block}
+.fig .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--faint); margin-top:9px; display:block}
+.fig .s{font-size:13px; color:var(--muted); margin-top:5px; display:block; line-height:1.45}
+.n.src{color:var(--source)} .n.tgt{color:var(--target)} .n.crit{color:var(--crit)}
+
+/* ---- sections ---- */
+section{padding-block:52px; border-bottom:1px solid var(--rule)}
+.shead{display:flex; align-items:baseline; gap:14px; margin-bottom:8px}
+.snum{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--target);
+  letter-spacing:.06em; padding-top:6px}
+h2{font-size:clamp(24px,3.3vw,32px); line-height:1.18; letter-spacing:-.01em}
+h3{font-size:18.5px; margin:34px 0 10px}
+.lede{font-size:17.5px; color:var(--muted); margin:12px 0 0; max-width:60ch}
+p{margin:16px 0}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto; margin:26px 0; border:1px solid var(--rule); background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:14px; min-width:480px}
+caption{caption-side:bottom; text-align:left; font-size:12.5px; color:var(--faint);
+  padding:11px 15px; border-top:1px solid var(--rule); line-height:1.5}
+th,td{padding:9px 15px; text-align:left; border-bottom:1px solid var(--rule)}
+thead th{font-family:var(--mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--faint); font-weight:500; background:var(--surface-2); white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+tr.total td{font-weight:600; background:var(--surface-2)}
+.cls{font-family:var(--mono); font-size:13px}
+.src{color:var(--source)} .tgt{color:var(--target)}
+.bad{color:var(--crit); font-weight:600} .ok{color:var(--good); font-weight:600}
+.dim{color:var(--faint)}
+
+/* ---- callouts ---- */
+.note{border-left:3px solid var(--source); background:var(--source-soft);
+  padding:16px 20px; margin:26px 0; font-size:15px}
+.note.warn{border-left-color:var(--target); background:var(--target-soft)}
+.note.crit{border-left-color:var(--crit); background:transparent; border:1px solid var(--crit);
+  border-left-width:3px}
+.note p{margin:0 0 10px; max-width:62ch} .note p:last-child{margin:0}
+.note .tag{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); display:block; margin-bottom:7px}
+
+/* ---- chart ---- */
+.chart{margin:30px 0 8px; background:var(--surface); border:1px solid var(--rule); padding:22px 20px 14px}
+.legend{display:flex; gap:22px; flex-wrap:wrap; font-family:var(--mono); font-size:11.5px;
+  color:var(--muted); margin-bottom:16px}
+.legend span{display:flex; align-items:center; gap:7px}
+.sw{width:12px; height:12px; display:inline-block; border-radius:1px}
+.chart svg{display:block; width:100%; height:auto; overflow:visible}
+
+/* ---- misc ---- */
+ul{padding-left:20px; margin:16px 0} li{margin:8px 0}
+code{font-family:var(--mono); font-size:.89em; background:var(--surface-2);
+  padding:1.5px 5px; border-radius:2px}
+details{margin:22px 0; border:1px solid var(--rule); background:var(--surface)}
+summary{cursor:pointer; padding:13px 18px; font-family:var(--mono); font-size:12.5px;
+  letter-spacing:.04em; color:var(--muted)}
+details[open] summary{border-bottom:1px solid var(--rule); color:var(--ink)}
+.dbody{padding:4px 18px 18px} .dbody p:first-child{margin-top:14px}
+footer{padding-block:44px 72px; font-family:var(--mono); font-size:12.5px; color:var(--faint)}
+footer a{color:var(--source)}
+.pill{display:inline-block; font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; padding:3px 9px; border:1px solid currentColor; border-radius:99px;
+  vertical-align:middle}
+.pill.no{color:var(--crit)} .pill.yes{color:var(--good)} .pill.part{color:var(--warn)}
+@media (max-width:560px){
+  body{font-size:16px; padding-inline:16px}
+  header.mast{padding-block:44px 32px}
+  section{padding-block:40px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Feasibility study &middot; Davidson Student Scholars AY2026&ndash;27</p>
+  <h1>Orientation is what breaks</h1>
+  <p class="standfirst">A roadside 3D detector moved from Beijing to Munich keeps finding
+  vehicles and keeps placing them correctly. It stops knowing which way they point &mdash;
+  and that alone destroys its score.</p>
+  <div class="byline">
+    <span><b>Thuc Bao Tran</b> &middot; SJSU College of Engineering</span>
+    <span>Faculty mentor: <b>Prof. Kaikai Liu</b></span>
+    <span>All figures measured on a borrowed <b>Jetson Orin Nano</b>, 15&nbsp;W</span>
+  </div>
+
+  <div class="figures">
+    <div class="fig"><span class="n src">69.73</span><span class="k">Source 3D AP</span>
+      <span class="s">DAIR-V2X-I, Car @ IoU 0.5, moderate</span></div>
+    <div class="fig"><span class="n tgt">0.13</span><span class="k">Target 3D AP</span>
+      <span class="s">Same weights, TUMTraf Intersection</span></div>
+    <div class="fig"><span class="n crit">28%</span><span class="k">Yaw within &plusmn;5&deg;</span>
+      <span class="s">Down from 88% in-domain</span></div>
+    <div class="fig"><span class="n">118.9<span style="font-size:16px"> ms</span></span>
+      <span class="k">Best edge latency</span>
+      <span class="s">INT8, still misses the 10&nbsp;Hz line</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="shead"><span class="snum">01</span><h2>The pipeline reproduces published numbers</h2></div>
+  <p class="lede">Before any new claim, the baseline had to prove itself. It does, to two
+  decimal places.</p>
+
+  <p>NVIDIA publishes accuracy for V2XFusion on DAIR-V2X-I. Running their pretrained
+  sparsity checkpoint through INT8 post-training quantisation on the Orin Nano, over the
+  full 2,016-frame validation split, reproduces their table:</p>
+
+  <div class="tw">
+  <table>
+    <caption>3D AP, easy / moderate / hard. Car and Pedestrian agree to within 0.04 AP.</caption>
+    <thead><tr><th>Class</th><th class="num">NVIDIA published</th><th class="num">This run</th><th class="num">Difference</th></tr></thead>
+    <tbody>
+      <tr><td class="cls">Car @0.5</td><td class="num">82.06 / 69.70 / 69.75</td>
+        <td class="num">82.08 / 69.70 / 69.75</td><td class="num ok">+0.02 / &minus;0.00 / +0.00</td></tr>
+      <tr><td class="cls">Pedestrian @0.25</td><td class="num">51.13 / 48.86 / 49.22</td>
+        <td class="num">51.17 / 48.87 / 49.22</td><td class="num ok">+0.04 / +0.01 / &minus;0.00</td></tr>
+      <tr><td class="cls">Cyclist @0.25</td><td class="num">60.95 / 57.81 / 58.43</td>
+        <td class="num">59.08 / 57.63 / 58.22</td><td class="num"><span class="bad">&minus;1.87</span> / &minus;0.18 / &minus;0.21</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>This matters more than it looks. Getting a 2022 research stack running on JetPack&nbsp;7
+  took eight separate fixes &mdash; a C++14/C++17 mismatch against torch&nbsp;2.6, a header
+  removed from PyTorch in 1.11, a shared-memory limit that killed data loaders, and a
+  hand-written CPU replacement for an IoU kernel because numba's CUDA backend segfaults on
+  this board. After that much surgery, the fair question is whether anything silently broke.
+  Landing on someone else's published values answers it.</p>
+
+  <div class="note warn">
+    <span class="tag">Unresolved</span>
+    <p>Cyclist-easy sits <b>1.87 AP</b> below published &mdash; roughly 30&times; the other
+    deltas. The first hypothesis, calibration sampling, is <b>ruled out</b>: the FP16 run
+    performs no calibration and shows the same gap. It is systematic, confined to the
+    sparsest cell in the table, and recorded as open rather than explained away.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">02</span><h2>Compression is nearly free &mdash; at home</h2></div>
+  <p class="lede">The in-domain cost of INT8, measured on this hardware rather than quoted.</p>
+
+  <div class="tw">
+  <table>
+    <caption>3D AP, moderate difficulty, DAIR-V2X-I validation. &Delta; is FP16 minus INT8;
+    positive means INT8 is worse.</caption>
+    <thead><tr><th>Class</th><th class="num">FP16</th><th class="num">INT8</th><th class="num">&Delta;<sub>in</sub></th></tr></thead>
+    <tbody>
+      <tr><td class="cls">Car @0.5</td><td class="num">69.73</td><td class="num">69.70</td><td class="num">+0.037</td></tr>
+      <tr><td class="cls">Pedestrian @0.25</td><td class="num">49.39</td><td class="num">48.87</td><td class="num">+0.518</td></tr>
+      <tr><td class="cls">Cyclist @0.25</td><td class="num">57.90</td><td class="num">57.63</td><td class="num">+0.263</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Cars lose <b>four hundredths of an AP point</b>. Pedestrians, the smallest objects and
+  the most quantisation-sensitive, lose six tenths. On its training distribution, INT8 is
+  effectively free.</p>
+  <p>That is the claim this project puts a boundary condition on. Every deployment decision
+  that cites a number like 0.037 is implicitly assuming it holds off-distribution, and
+  nobody has checked.</p>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">03</span><h2>Edge hardware cannot run it at full precision</h2></div>
+  <p class="lede">Separately from accuracy: what the vendor's own deployment model costs on
+  car-grade silicon.</p>
+
+  <p>NVIDIA's CUDA-BEVFusion, their pretrained weights, their TensorRT pipeline, real
+  nuScenes data, running on the Orin Nano:</p>
+
+  <div class="tw">
+  <table>
+    <caption>Per-stage latency, median of three runs within 0.18&nbsp;ms. The 100&nbsp;ms
+    line is the conventional 10&nbsp;Hz perception budget.</caption>
+    <thead><tr><th>Stage</th><th class="num">FP16</th><th class="num">INT8</th><th class="num">Speedup</th></tr></thead>
+    <tbody>
+      <tr><td class="cls">LiDAR backbone</td><td class="num">66.29</td><td class="num">46.56</td><td class="num">1.42&times;</td></tr>
+      <tr><td class="cls">Camera backbone</td><td class="num">51.45</td><td class="num">29.50</td><td class="num">1.74&times;</td></tr>
+      <tr><td class="cls">Transfusion</td><td class="num">23.68</td><td class="num">15.40</td><td class="num">1.54&times;</td></tr>
+      <tr><td class="cls">Head bbox</td><td class="num">14.54</td><td class="num">14.56</td><td class="num bad">1.00&times;</td></tr>
+      <tr><td class="cls">Camera BEVpool</td><td class="num">6.57</td><td class="num">6.44</td><td class="num bad">1.02&times;</td></tr>
+      <tr><td class="cls">View transform</td><td class="num">6.08</td><td class="num">6.09</td><td class="num bad">1.00&times;</td></tr>
+      <tr><td class="cls">Image norm</td><td class="num">5.86</td><td class="num">5.98</td><td class="num bad">0.98&times;</td></tr>
+      <tr class="total"><td class="cls">Total</td><td class="num">168.95</td><td class="num">118.88</td><td class="num">1.42&times;</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><b>Both precisions miss the real-time line.</b> 5.9&nbsp;FPS and 8.4&nbsp;FPS. Not just
+  full precision &mdash; the quantised, vendor-optimised deployment model fails 10&nbsp;Hz on
+  this board.</p>
+
+  <p>And the stages that do not compress sum to <b>33.98&nbsp;ms &mdash; 29% of the INT8
+  frame</b>. A third of the budget is spent before quantisation gets a vote. The view
+  transform is a scatter into a 200&times;200 BEV grid: memory-bound, so lowering precision
+  does nothing for it.</p>
+
+  <div class="note">
+    <span class="tag">Independent confirmation</span>
+    <p>An untrained FlashOcc-shaped network written from scratch for this study predicted
+    <b>1.03&times;</b> for the view transform. NVIDIA's production pipeline with trained
+    weights measured <b>1.00&times;</b>. Two unrelated implementations agree, so this is a
+    property of the operator rather than of either codebase.</p>
+  </div>
+
+  <p>Against NVIDIA's published Orin <b>AGX</b> figures the gap is 3.04&times; at FP16 and
+  2.97&times; at INT8 &mdash; stable across precisions. The relative INT8 benefit matches AGX
+  within 2% (1.42&times; vs 1.39&times;), so compression behaviour is hardware-portable even
+  though absolute speed is not. Structured 2:4 sparsity is the exception: it returns
+  1.10&ndash;1.15&times; here against AGX's 1.17&ndash;1.24&times;, so sparsity gains
+  extrapolated from a larger board would be overstated.</p>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">04</span><h2>Moving countries costs almost everything</h2></div>
+  <p class="lede">Zero-shot: the same frozen weights, evaluated on a German roadside
+  intersection they have never seen.</p>
+
+  <p><b>Target domain:</b> TUMTraf Intersection R2 &mdash; 2,160 synchronised frames from an
+  elevated station near Munich, Basler camera plus Ouster&nbsp;OS1 LiDAR, across
+  sunny&nbsp;day, sunny&nbsp;dusk and rainy&nbsp;night. Same task and same sensor modalities
+  as DAIR-V2X-I, different country, intersection, sensor and vehicle fleet.</p>
+
+  <div class="tw">
+  <table>
+    <caption>3D AP, moderate difficulty, FP16. Car is scored at a stricter IoU (0.7/0.5) than
+    Pedestrian and Cyclist (0.5/0.25), so the three rows are not comparable to each other.
+    At a matched IoU of 0.5 all three collapse together: Car 0.12, Cyclist 0.024,
+    Pedestrian 0.013.</caption>
+    <thead><tr><th>Class</th><th class="num">DAIR <span class="dim">source</span></th>
+      <th class="num">TUMTraf <span class="dim">target</span></th><th class="num">Retained</th></tr></thead>
+    <tbody>
+      <tr><td class="cls">Car @0.5</td><td class="num src">69.73</td><td class="num tgt">0.13</td>
+        <td class="num bad">0.2%</td></tr>
+      <tr><td class="cls">Pedestrian @0.25</td><td class="num src">49.39</td><td class="num tgt">27.61</td>
+        <td class="num">55.9%</td></tr>
+      <tr><td class="cls">Cyclist @0.25</td><td class="num src">57.90</td><td class="num tgt">37.76</td>
+        <td class="num">65.2%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>For scale, DG-BEV (CVPR&nbsp;2023) reports a camera BEV detector retaining <b>7% of
+  oracle</b> on nuScenes&rarr;Waymo. This is the same phenomenon in the roadside setting,
+  and at strict IoU it is worse.</p>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">05</span><h2>The failure is one head, not the network</h2></div>
+  <p class="lede">This is the finding. The detector still sees; it stops knowing which way
+  things face.</p>
+
+  <p>Matching every prediction to its nearest ground-truth vehicle and measuring the signed
+  heading error separates a genuine failure from a coordinate bug &mdash; a frame or
+  convention mismatch would appear as a constant offset.</p>
+
+  <div class="chart">
+    <div class="legend">
+      <span><i class="sw" style="background:#0F6E78"></i> DAIR-V2X-I &mdash; in-domain (n=411)</span>
+      <span><i class="sw" style="background:#B4531F"></i> TUMTraf &mdash; shifted (n=705)</span>
+    </div>
+    <svg viewBox="0 0 700 260" role="img" aria-label="Histogram of signed yaw error. In-domain, 88 percent of predictions fall within plus or minus 5 degrees. Under domain shift only 28 percent do, with large secondary clusters near plus 15 to 30 degrees and minus 30 to 60 degrees.">
+      <line x1="52" y1="200" x2="688" y2="200" stroke="currentColor" stroke-opacity=".28" stroke-width="1"/>
+      <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" fill-opacity=".55">
+        <text x="46" y="204" text-anchor="end">0</text>
+        <text x="46" y="154" text-anchor="end">25</text>
+        <text x="46" y="104" text-anchor="end">50</text>
+        <text x="46" y="54" text-anchor="end">75</text>
+        <text x="46" y="26" text-anchor="end">90%</text>
+      </g>
+      <g stroke="currentColor" stroke-opacity=".1" stroke-width="1">
+        <line x1="52" y1="150" x2="688" y2="150"/><line x1="52" y1="100" x2="688" y2="100"/>
+        <line x1="52" y1="50" x2="688" y2="50"/>
+      </g>
+      <!-- 9 bins, % of matches. DAIR then TUMTraf -->
+      <g>
+        <rect x="60"  y="200"   width="26" height="0"     fill="#0F6E78"/><rect x="88"  y="197.4" width="26" height="2.6"   fill="#B4531F"/>
+        <rect x="130" y="198.6" width="26" height="1.4"   fill="#0F6E78"/><rect x="158" y="168"   width="26" height="32"    fill="#B4531F"/>
+        <rect x="200" y="198"   width="26" height="2"     fill="#0F6E78"/><rect x="228" y="183.2" width="26" height="16.8"  fill="#B4531F"/>
+        <rect x="270" y="192.8" width="26" height="7.2"   fill="#0F6E78"/><rect x="298" y="185.6" width="26" height="14.4"  fill="#B4531F"/>
+        <rect x="340" y="23.4"  width="26" height="176.6" fill="#0F6E78"/><rect x="368" y="144.4" width="26" height="55.6"  fill="#B4531F"/>
+        <rect x="410" y="192.8" width="26" height="7.2"   fill="#0F6E78"/><rect x="438" y="192"   width="26" height="8"     fill="#B4531F"/>
+        <rect x="480" y="199"   width="26" height="1"     fill="#0F6E78"/><rect x="508" y="132.2" width="26" height="67.8"  fill="#B4531F"/>
+        <rect x="550" y="199"   width="26" height="1"     fill="#0F6E78"/><rect x="578" y="197.4" width="26" height="2.6"   fill="#B4531F"/>
+        <rect x="620" y="196.6" width="26" height="3.4"   fill="#0F6E78"/><rect x="648" y="199.8" width="26" height=".2"    fill="#B4531F"/>
+      </g>
+      <g font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600">
+        <text x="353" y="17" text-anchor="middle" fill="#0F6E78">88%</text>
+        <text x="521" y="126" text-anchor="middle" fill="#B4531F">34%</text>
+        <text x="171" y="162" text-anchor="middle" fill="#B4531F">16%</text>
+        <text x="381" y="138" text-anchor="middle" fill="#B4531F">28%</text>
+      </g>
+      <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" fill-opacity=".6" text-anchor="middle">
+        <text x="87" y="216">&minus;90</text><text x="157" y="216">&minus;60</text>
+        <text x="227" y="216">&minus;30</text><text x="297" y="216">&minus;15</text>
+        <text x="367" y="216">&minus;5</text><text x="437" y="216">5</text>
+        <text x="507" y="216">15</text><text x="577" y="216">30</text>
+        <text x="647" y="216">60</text>
+      </g>
+      <text x="370" y="240" font-family="IBM Plex Mono, monospace" font-size="10"
+        fill="currentColor" fill-opacity=".6" text-anchor="middle">signed heading error (degrees)</text>
+    </svg>
+  </div>
+
+  <div class="tw">
+  <table>
+    <caption>Vehicle heading error against nearest-matched ground truth, FP16.</caption>
+    <thead><tr><th>Measure</th><th class="num">DAIR <span class="dim">source</span></th>
+      <th class="num">TUMTraf <span class="dim">target</span></th></tr></thead>
+    <tbody>
+      <tr><td>Median signed error</td><td class="num src">&minus;0.2&deg;</td><td class="num tgt">&minus;0.2&deg;</td></tr>
+      <tr><td>Standard deviation</td><td class="num src">12.4&deg;</td><td class="num tgt">24.0&deg;</td></tr>
+      <tr><td>Within &plusmn;5&deg;</td><td class="num src">88%</td><td class="num tgt bad">28%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><b>The median is &minus;0.2&deg; in both domains.</b> There is no constant offset, so
+  this is not a conversion artefact. What changes is the spread: it doubles, and the error
+  becomes multi-modal, clustering near <b>+15&hellip;30&deg;</b> and
+  <b>&minus;30&hellip;&minus;60&deg;</b>.</p>
+
+  <p>Those clusters look like learned priors. The model appears to have absorbed the approach
+  angles of the Beijing intersection it trained on, and the Munich intersection's roads meet
+  at different angles.</p>
+
+  <p>This single mechanism explains the whole AP table. A 20&deg; heading error on a
+  4.1&nbsp;&times;&nbsp;1.9&nbsp;m box still overlaps its ground truth enough to clear
+  <b>IoU&nbsp;0.25</b> but not <b>IoU&nbsp;0.5</b> &mdash; which is exactly why Car, scored at
+  the stricter threshold, collapses to 0.13 while Pedestrian and Cyclist, scored at 0.25,
+  retain 56% and 65%.</p>
+
+  <div class="note">
+    <span class="tag">Falsifiable prediction</span>
+    <p>If the clusters are learned road geometry, they should align with TUMTraf's actual
+    lane headings. That is a day's work to check, and it either confirms the mechanism or
+    refutes it.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">06</span><h2>What this does <em>not</em> show</h2></div>
+  <p class="lede">The original hypothesis was that compression amplifies domain fragility.
+  This data does not support it.</p>
+
+  <div class="tw">
+  <table>
+    <caption>&Delta; is FP16 minus INT8; positive means quantisation hurts. A clean
+    amplification result would show the same sign in both columns and a ratio above 1.</caption>
+    <thead><tr><th>Class</th><th class="num">&Delta;<sub>in</sub> <span class="dim">DAIR</span></th>
+      <th class="num">&Delta;<sub>out</sub> <span class="dim">TUMTraf</span></th><th class="num">Ratio</th></tr></thead>
+    <tbody>
+      <tr><td class="cls">Car @0.5</td><td class="num">+0.037</td><td class="num bad">&minus;0.654</td><td class="num">&minus;17.9</td></tr>
+      <tr><td class="cls">Pedestrian @0.25</td><td class="num">+0.518</td><td class="num bad">&minus;0.892</td><td class="num">&minus;1.7</td></tr>
+      <tr><td class="cls">Cyclist @0.25</td><td class="num">+0.263</td><td class="num">+1.328</td><td class="num">+5.0</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note crit">
+    <span class="tag">Negative result</span>
+    <p><b>The signs disagree.</b> Two of three classes show INT8 performing <em>better</em>
+    than FP16 out of domain, which is not physically meaningful. These differences are at
+    noise level. Only Cyclist shows the predicted amplification.</p>
+    <p>One calibration seed, one target dataset and one model cannot separate a 1.3&nbsp;AP
+    effect from noise. Reporting this as a confirmed finding would be wrong.</p>
+  </div>
+
+  <p>On the mechanism the signal is cleaner, though still small. Quantisation adds no heading
+  error in-domain and a little out of domain:</p>
+
+  <div class="tw">
+  <table>
+    <caption>Heading error standard deviation. The effect is in the predicted direction.</caption>
+    <thead><tr><th>Domain</th><th class="num">FP16</th><th class="num">INT8</th><th class="num">&Delta;</th></tr></thead>
+    <tbody>
+      <tr><td>DAIR <span class="dim">source</span></td><td class="num">12.4&deg;</td><td class="num">12.4&deg;</td><td class="num">0.0&deg;</td></tr>
+      <tr><td>TUMTraf <span class="dim">target</span></td><td class="num">24.0&deg;</td><td class="num">25.2&deg;</td><td class="num">+1.2&deg;</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>That is a hypothesis worth powering properly, not a result.</p>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">07</span><h2>What the year would do</h2></div>
+  <p class="lede">The week did not confirm the original question. It replaced it with a
+  better one.</p>
+
+  <h3>The question, restated</h3>
+  <p>Not &ldquo;how much accuracy is lost under domain shift?&rdquo; &mdash; that is
+  established, and this study re-measures it. Instead:</p>
+  <p><b>Which components of a 3D perception network are domain-fragile, and does compression
+  make the fragile ones worse?</b></p>
+
+  <p>The heading result makes this concrete rather than rhetorical. Degradation is not
+  uniform: detection and position transfer reasonably well, while orientation collapses.
+  That is a property of a specific head, measurable per-component, and potentially
+  fixable without retraining the whole network.</p>
+
+  <h3>Why this is worth a year</h3>
+  <ul>
+    <li><b>It is unoccupied ground.</b> Efficiency work reports compressed accuracy
+    in-domain. Domain-generalisation work reports cross-dataset accuracy at full precision
+    on datacentre GPUs. The two literatures barely cite each other, and nobody reports
+    compressed accuracy cross-domain on edge hardware.</li>
+    <li><b>It has a mechanism, not just a number.</b> Per-component fragility is a claim a
+    reviewer can test and an engineer can act on. &ldquo;Accuracy drops&rdquo; is not.</li>
+    <li><b>There is a cheap candidate fix.</b> PTQ derives its quantisation ranges from a
+    calibration set drawn from the source domain. Calibrating on <em>unlabelled</em> target
+    data needs forward passes only &mdash; no labels, no retraining, minutes of compute. If
+    that recovers the gap, it is a deployable result rather than a warning.</li>
+    <li><b>It lands inside an existing research programme.</b> Cross-dataset domain gaps in
+    sensor layout, ego-frame conventions and class-name alignment are named gaps in the
+    mentor's own documents. This study hit all three as concrete engineering problems and
+    solved them.</li>
+  </ul>
+
+  <h3>What the first months would settle</h3>
+  <ul>
+    <li>Check the heading-cluster prediction against TUMTraf's lane geometry.</li>
+    <li>Repeat calibration across seeds with per-class confidence intervals, so the
+    amplification question gets a real answer instead of a noisy one.</li>
+    <li>Add a second target domain, to separate &ldquo;this pair of datasets&rdquo; from
+    &ldquo;domain shift&rdquo;.</li>
+    <li>Test target-domain calibration as the fix.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">08</span><h2>Limits, and what it took</h2></div>
+
+  <p>Honest constraints on everything above:</p>
+  <ul>
+    <li><b>Track A gives latency but never accuracy.</b> NVIDIA ships a single example frame;
+    real mAP needs the full nuScenes release.</li>
+    <li><b>Track B gives accuracy but never TensorRT latency.</b> ONNX export fails on a
+    PyTorch internal assertion in the TorchScript exporter under torch&nbsp;2.6. That likely
+    needs an x86 machine with an older torch.</li>
+    <li><b>One target dataset, one model, one calibration seed.</b> Stated plainly in
+    &sect;06.</li>
+    <li><b>Class balance differs between domains.</b> TUMTraf has no traffic cones, DAIR's
+    largest class. Per-class AP is the honest unit; a single averaged mAP would hide this.</li>
+    <li><b>Two bugs were found and fixed during the cross-dataset work</b>, both from
+    assuming TUMTraf resembled DAIR: an image height of 1080 declared for
+    1920&times;1200 images, and a missing custom collate function. Pre-fix numbers are
+    retained in the repository as a record.</li>
+  </ul>
+
+  <details>
+    <summary>Engineering byproduct &mdash; running this stack on JetPack 7</summary>
+    <div class="dbody">
+      <p>Getting a 2022 MMLab-based pipeline onto JetPack&nbsp;7 / CUDA&nbsp;12.6 /
+      torch&nbsp;2.6 / aarch64 required eight fixes, all committed:</p>
+      <ul>
+        <li><code>-std=c++14</code> against torch 2.6 headers that need C++17 (76,835 errors
+        from one flag)</li>
+        <li><code>THC/THC.h</code>, removed from PyTorch in 1.11</li>
+        <li>Duplicate <code>SparseConv2d</code> registry entries</li>
+        <li>A 64&nbsp;MB <code>/dev/shm</code> default that killed data loaders with SIGBUS</li>
+        <li>A CPU rotated-IoU implementation, because numba's CUDA backend segfaults on this
+        board &mdash; a trivial kernel exits 139 while <code>cuda.is_available()</code>
+        reports true</li>
+        <li>Four missing Python packages, and a <code>pip --target</code> trap that silently
+        shadows the container's numpy</li>
+      </ul>
+      <p>Two defects belong to the shared lab container image rather than this work:
+      <code>import scipy.sparse</code> fails out of the box (scipy built against numpy&nbsp;2
+      alongside numpy&nbsp;1.26), and its PyTorch is compiled without
+      <code>torch.distributed</code>.</p>
+      <p>The mmcv-full 1.7.2 wheel compiled against torch&nbsp;2.6 on aarch64 has no public
+      equivalent and is kept, along with a TUMTraf&rarr;DAIR converter whose camera choice,
+      transform direction and ground alignment were each verified by measurement rather than
+      assumption.</p>
+    </div>
+  </details>
+</section>
+
+<footer>
+  <p>Code, logs and every raw AP table:
+  <a href="https://github.com/henrytran412/God-eye">github.com/henrytran412/God-eye</a></p>
+  <p>Hardware: Jetson Orin Nano Developer Kit, 8 SMs, 7.3&nbsp;GiB unified, JetPack&nbsp;7
+  (L4T r39.2), TensorRT&nbsp;10.7, 15&nbsp;W with clocks locked. Datasets: DAIR-V2X-I
+  (7,058 frames), TUMTraf Intersection R2 (2,160 frames), nuScenes example data.</p>
+</footer>
+
+</div>
+</body>
+</html>
