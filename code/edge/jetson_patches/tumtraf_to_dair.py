@@ -23,6 +23,16 @@ Three alignment decisions, each measured rather than assumed:
    NOT a domain-gap eraser: appearance, sensor, geometry and fleet differences all
    survive it.
 
+4. CAMERA SCOPING. TUMTraf labels the full 360 deg LiDAR scene; DAIR labels only
+   what its single camera sees. Measured over the same frames: 0 of 14099 DAIR
+   objects fail to project into the image, against 56.8% of TUMTraf Cars, 67.7% of
+   Vans and 26.8% of Pedestrians. Keeping those would score the model against
+   objects its camera physically cannot see, and the damage would fall hardest on
+   whichever classes happen to sit off-axis -- which is exactly the artefact first
+   observed (Cyclist 0% invisible scored 39.3 AP, Car 56.8% invisible scored 0.12).
+   Objects that do not project into the image are therefore dropped, matching DAIR's
+   convention. --keep-invisible restores the old behaviour for comparison.
+
 Shifting the cloud changes the extrinsic: with p_new = p_old + [0,0,dz],
 T_cam<-new = T_cam<-old @ Translate(0,0,-dz), so R is unchanged and
 t_new = t_old - dz * R[:, 2].
@@ -95,6 +105,9 @@ def main() -> int:
     ap.add_argument("--dst", required=True, help="output root, DAIR layout")
     ap.add_argument("--limit", type=int, default=0, help="convert only N frames (smoke test)")
     ap.add_argument("--no-points", action="store_true", help="skip point clouds (fast check)")
+    ap.add_argument("--keep-invisible", action="store_true",
+                    help="keep objects that do not project into the camera image "
+                         "(off by default; see CAMERA SCOPING in the module docstring)")
     args = ap.parse_args()
 
     src, dst = pathlib.Path(args.src), pathlib.Path(args.dst)
@@ -109,7 +122,7 @@ def main() -> int:
     print(str(len(labels)) + " frames")
 
     stats = {"objects": 0, "kept": 0, "unmapped": {}, "no_image": 0,
-             "no_pcd": 0, "in_img_2d": 0}
+             "no_pcd": 0, "in_img_2d": 0, "dropped_not_in_image": 0}
     index, split = [], []
 
     for i, lab in enumerate(labels):
@@ -198,6 +211,14 @@ def main() -> int:
             else:
                 trunc = "2"
                 box = {"xmin": 0.0, "ymin": 0.0, "xmax": 0.0, "ymax": 0.0}
+
+            # Camera scoping: DAIR labels only camera-visible objects (0 of 14099
+            # degenerate), so keeping 360-degree LiDAR labels here would compare
+            # unlike GT sets. See CAMERA SCOPING in the module docstring.
+            visible = box["xmax"] > box["xmin"] and box["ymax"] > box["ymin"]
+            if not visible and not args.keep_invisible:
+                stats["dropped_not_in_image"] += 1
+                continue
 
             objs.append({
                 "type": name, "occluded_state": occ, "truncated_state": trunc,
