@@ -35,3 +35,10 @@ graphify-out/
 # Jetson benchmark logs are worth keeping, engines are not
 **/*.engine
 **/*.plan
+
+# Jetson artifacts: large binaries kept locally, not in git.
+# Recreate with code/edge/jetson_patches/ + JETSON_SETUP.md if lost.
+jetson_artifacts/models/
+jetson_artifacts/wheels/
+jetson_artifacts/detections/
+jetson_artifacts/out/
