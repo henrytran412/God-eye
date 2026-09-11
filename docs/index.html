@@ -134,6 +134,28 @@ footer a{color:var(--source)}
   text-transform:uppercase; padding:3px 9px; border:1px solid currentColor; border-radius:99px;
   vertical-align:middle}
 .pill.no{color:var(--crit)} .pill.yes{color:var(--good)} .pill.part{color:var(--warn)}
+
+/* ---- the case ---- */
+ol.case{list-style:none; counter-reset:c; padding:0; margin:30px 0 0;
+  display:grid; gap:1px; background:var(--rule); border:1px solid var(--rule)}
+ol.case li{counter-increment:c; background:var(--surface); padding:20px 22px 18px 62px;
+  position:relative; max-width:none}
+ol.case li::before{content:counter(c); position:absolute; left:22px; top:20px;
+  font-family:var(--mono); font-size:12px; font-weight:600; color:var(--source);
+  border:1px solid var(--source); border-radius:99px; width:24px; height:24px;
+  display:grid; place-items:center; line-height:1}
+ol.case h3{margin:0 0 6px; font-size:18px}
+ol.case p{margin:0; max-width:64ch; font-size:15.5px}
+ol.case a{display:inline-block; margin-top:11px; font-family:var(--mono); font-size:11.5px;
+  letter-spacing:.05em; text-decoration:none; border-bottom:1px solid currentColor;
+  padding-bottom:1px}
+ol.case a:hover{color:var(--target)}
+.note a{color:var(--target)}
+:target{scroll-margin-top:20px}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media (max-width:560px){ol.case li{padding:18px 16px 16px 16px}
+  ol.case li::before{position:static; margin-bottom:9px}}
 @media (max-width:560px){
   body{font-size:16px; padding-inline:16px}
   header.mast{padding-block:44px 32px}
@@ -170,7 +192,63 @@ footer a{color:var(--source)}
   </div>
 </header>
 
-<section>
+<section id="case">
+  <div class="shead"><span class="snum" style="color:var(--source)">&#9679;</span><h2>The case, in five steps</h2></div>
+  <p class="lede">One week, one borrowed board. Each step below is a measurement, and each
+  links to the section that shows the working.</p>
+
+  <ol class="case">
+    <li>
+      <h3>The instrument is calibrated</h3>
+      <p>The pipeline reproduces NVIDIA's published DAIR-V2X-I accuracy to
+      <b>0.02&ndash;0.04&nbsp;AP</b> on Car and Pedestrian. Nothing downstream is worth
+      reading without this, and it is the part most feasibility studies skip.</p>
+      <a href="#s01">See &sect;01 &rarr;</a>
+    </li>
+    <li>
+      <h3>The failure is real, and enormous</h3>
+      <p>The same frozen weights on a German intersection retain <b>0.2%</b> of their Car
+      accuracy at IoU&nbsp;0.5 &mdash; <b>69.73&nbsp;&rarr;&nbsp;0.13&nbsp;AP</b>. This is
+      not a marginal effect that needs teasing out of noise.</p>
+      <a href="#s04">See &sect;04 &rarr;</a>
+    </li>
+    <li>
+      <h3>The cause is specific, and nobody has reported it</h3>
+      <p>Degradation is <em>not</em> uniform. Detection and position largely survive; the
+      heading estimate collapses &mdash; <b>88%&nbsp;&rarr;&nbsp;28%</b> of vehicles within
+      &plusmn;5&deg;, with the median error unchanged at &minus;0.2&deg; in both domains, so
+      it is not a coordinate bug. One head fails while the rest of the network holds.</p>
+      <a href="#s05">See &sect;05 &rarr;</a>
+    </li>
+    <li>
+      <h3>It sits in unoccupied ground</h3>
+      <p>Efficiency research reports compressed accuracy <em>in-domain</em>.
+      Domain-generalisation research reports cross-dataset accuracy <em>at full precision,
+      on datacentre GPUs</em>. Neither reports compressed accuracy, cross-domain, on edge
+      hardware &mdash; and the two literatures barely cite each other.</p>
+      <a href="#s07">See &sect;07 &rarr;</a>
+    </li>
+    <li>
+      <h3>There is a cheap fix to test, not just a warning to issue</h3>
+      <p>Post-training quantisation takes its numeric ranges from a calibration set drawn
+      from the <em>source</em> domain. Recalibrating on <em>unlabelled</em> target data needs
+      forward passes only &mdash; no labels, no retraining, minutes of compute. If that
+      closes the gap, the outcome is deployable rather than cautionary.</p>
+      <a href="#s07">See &sect;07 &rarr;</a>
+    </li>
+  </ol>
+
+  <div class="note warn">
+    <span class="tag">And one step that did not land</span>
+    <p>The original hypothesis &mdash; that compression amplifies domain fragility &mdash;
+    is <b>not supported</b> by this data. The per-class effects disagree in sign and sit at
+    noise level. It is stated in full in <a href="#s06">&sect;06</a> rather than buried,
+    because the week's real output is a sharper question with a mechanism behind it, not a
+    confirmed answer.</p>
+  </div>
+</section>
+
+<section id="s01">
   <div class="shead"><span class="snum">01</span><h2>The pipeline reproduces published numbers</h2></div>
   <p class="lede">Before any new claim, the baseline had to prove itself. It does, to two
   decimal places.</p>
@@ -210,7 +288,7 @@ footer a{color:var(--source)}
   </div>
 </section>
 
-<section>
+<section id="s02">
   <div class="shead"><span class="snum">02</span><h2>Compression is nearly free &mdash; at home</h2></div>
   <p class="lede">The in-domain cost of INT8, measured on this hardware rather than quoted.</p>
 
@@ -235,7 +313,7 @@ footer a{color:var(--source)}
   nobody has checked.</p>
 </section>
 
-<section>
+<section id="s03">
   <div class="shead"><span class="snum">03</span><h2>Edge hardware cannot run it at full precision</h2></div>
   <p class="lede">Separately from accuracy: what the vendor's own deployment model costs on
   car-grade silicon.</p>
@@ -286,7 +364,7 @@ footer a{color:var(--source)}
   extrapolated from a larger board would be overstated.</p>
 </section>
 
-<section>
+<section id="s04">
   <div class="shead"><span class="snum">04</span><h2>Moving countries costs almost everything</h2></div>
   <p class="lede">Zero-shot: the same frozen weights, evaluated on a German roadside
   intersection they have never seen.</p>
@@ -320,7 +398,7 @@ footer a{color:var(--source)}
   and at strict IoU it is worse.</p>
 </section>
 
-<section>
+<section id="s05">
   <div class="shead"><span class="snum">05</span><h2>The failure is one head, not the network</h2></div>
   <p class="lede">This is the finding. The detector still sees; it stops knowing which way
   things face.</p>
@@ -413,7 +491,7 @@ footer a{color:var(--source)}
   </div>
 </section>
 
-<section>
+<section id="s06">
   <div class="shead"><span class="snum">06</span><h2>What this does <em>not</em> show</h2></div>
   <p class="lede">The original hypothesis was that compression amplifies domain fragility.
   This data does not support it.</p>
@@ -458,7 +536,7 @@ footer a{color:var(--source)}
   <p>That is a hypothesis worth powering properly, not a result.</p>
 </section>
 
-<section>
+<section id="s07">
   <div class="shead"><span class="snum">07</span><h2>What the year would do</h2></div>
   <p class="lede">The week did not confirm the original question. It replaced it with a
   better one.</p>
@@ -503,7 +581,7 @@ footer a{color:var(--source)}
   </ul>
 </section>
 
-<section>
+<section id="s08">
   <div class="shead"><span class="snum">08</span><h2>Limits, and what it took</h2></div>
 
   <p>Honest constraints on everything above:</p>
