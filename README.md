@@ -1,116 +1,117 @@
 # God-eye
 
-**Does compressing a 3D perception model to run on automotive edge hardware make it lose
-more accuracy under dataset shift than the full-precision model does?**
+**When a 3D detector is moved to a place it was never trained on, which part of it breaks?**
 
 Undergraduate research, SJSU College of Engineering — Davidson Student Scholars,
 AY2026–27. Faculty mentor: Prof. Kaikai Liu.
 
+**📄 [Read the findings →](https://henrytran412.github.io/God-eye/)**
+
 ---
 
-## Why the question
+## The short version
 
-3D perception models are published with accuracy measured **in-domain, on datacentre
-GPUs**. FlashOcc reports mIoU 31.95 on Occ3D-nuScenes; CUDA-BEVFusion reports 67.89 mAP
-with throughput on an RTX 3090. A car runs them **compressed, on embedded hardware, in
-places the training data never covered**. Every condition differs.
+A roadside 3D detector trained in Beijing, evaluated unchanged on a German intersection,
+**keeps finding vehicles and keeps placing them correctly. It stops knowing which way they
+point** — and that alone destroys its score.
 
-Both losses are documented separately:
+| | DAIR-V2X-I (source) | TUMTraf (target) |
+|---|---|---|
+| Car 3D AP @ IoU 0.5, moderate | **69.70** | **0.13** |
+| Vehicle heading within ±5° | **88%** | **28%** |
+| Median heading error | −0.2° | **−0.2°** |
 
-- **Compression:** NVIDIA publishes an in-domain INT8 cost for BEVFusion — 67.89 → 67.66
-  mAP, a 0.23 drop.
-- **Domain shift:** DG-BEV (CVPR 2023) measures a camera BEV detector moved
-  nuScenes → Waymo scoring **0.040 mAP against a 0.552 oracle — 7% retained**.
-
-Nobody has measured whether they *interact*. If compression amplifies domain-shift damage,
-the model actually shipped in a vehicle is the one that fails hardest in exactly the
-conditions it was not trained for. If it does not, edge deployment is free of robustness
-cost — which has not been shown either. Both answers are worth having.
+The median is unchanged in both domains, so this is not a coordinate or conversion bug —
+the *bias* is fine and the *reliability* collapses. A ~20° heading error on a 4.1 × 1.9 m
+box still clears IoU 0.25 but not IoU 0.5, which is exactly why Car (scored at the strict
+threshold) reads 0.13 while Pedestrian and Cyclist (scored at 0.25) retain 56% and 65%.
 
 ## Status
 
-**Pre-proposal.** Proposal due to the department 27 September 2026. This repository
-currently holds the feasibility work being done to support it.
-
 | | |
 |---|---|
-| Research direction | Settled — perception only |
-| Datasets | DAIR-V2X-I complete (7,058 frames, assembled); nuScenes example ships with BEVFusion |
-| ONNX export path | Verified against PyTorch |
-| Jetson board | Orin Nano, JetPack 7 / L4T r39.2, TensorRT 10.7 in container — reachable, TensorRT working (see `JETSON_SETUP.md`) |
-| Jetson benchmark harness | Runs; first engine build in progress |
-| Accuracy results | **None yet** |
+| Baseline reproduces published numbers | ✅ within **0.02–0.04 AP** of NVIDIA's DAIR-V2X-I table |
+| Edge latency measured | ✅ CUDA-BEVFusion, FP16 168.95 ms / INT8 118.88 ms |
+| In-domain compression cost | ✅ Δ = **0.037 AP** (Car, moderate) |
+| Cross-dataset evaluation | ✅ TUMTraf Intersection, 2160 frames, FP16 + INT8 |
+| Mechanism identified | ✅ orientation, not detection or localisation |
+| Compression amplifies domain shift? | ❌ **not supported** — effects at noise level, see below |
+| Proposal | in drafting, due 27 September 2026 |
+
+## What the measurements say
+
+**1. The instrument is calibrated.** V2XFusion INT8-PTQ on the full 2016-frame DAIR-V2X-I
+validation split reproduces NVIDIA's published table: Car 82.08/69.70/69.75 against their
+82.06/69.70/69.75. Nothing downstream is worth reading without this.
+
+**2. Compression is nearly free in-domain.** FP16 → INT8 costs 0.037 AP on Car, 0.518 on
+Pedestrian, 0.263 on Cyclist.
+
+**3. Edge hardware cannot run it at full precision.** On an Orin Nano at 15 W, CUDA-BEVFusion
+is 168.95 ms at FP16 and 118.88 ms at INT8 — **both miss the 100 ms / 10 Hz line**. The
+stages that do not compress sum to **33.98 ms, 29% of the INT8 frame**.
+
+**4. Domain shift is severe, and localised.** Full tables in
+[`results_jetson/`](results_jetson/).
+
+**5. The original hypothesis is not supported.** Whether INT8 amplifies domain-shift damage
+remains open: per-class effects disagree in sign and sit at noise level. Recorded in full in
+[`results_jetson/tumtraf/CROSS_DATASET.md`](results_jetson/tumtraf/CROSS_DATASET.md) rather
+than quietly dropped.
 
 ## Repository map
 
 ```
-code/edge/          Edge benchmarking harness — the active work
-  occ_model.py        FlashOcc-shaped occupancy net (200x200x16x18) → ONNX,
-                      with no mmdet3d and no bev_pool_v2 CUDA op
-  export_backbone.py  R50 image backbone → ONNX (latency lower bound)
-  bench_trt.py        trtexec-driven Jetson benchmark: latency, memory, power, thermals
+results_jetson/           All measurements, raw AP tables and logs
+  trackA/                 CUDA-BEVFusion edge latency + detection output
+  trackB/                 V2XFusion in-domain baseline and compression cost
+  tumtraf/                Cross-dataset result and the unscoped comparison
+  15W/                    Occupancy-model sweep, 3 models x 3 precisions
+  sparsity/               2:4 structured sparsity measurements
 
-WORKFLOW.md         Day-by-day plan to the 27 September deadline
-PERCEPTION_PIVOT.md Research behind the direction; the literature and the gap
-SECURITY_TRACK_ASSESSMENT.md  Why the security direction was dropped
-PROPOSAL_v2.{md,tex}          Proposal draft in the DSS template
+code/edge/
+  bench_trt.py            trtexec-driven Jetson benchmark: latency, power, thermals
+  occ_model.py            FlashOcc-shaped occupancy net -> ONNX, no mmdet3d needed
+  make_evidence.py        Turns results.json into tables and plots
+  jetson_patches/         Everything needed to reproduce the runs (see below)
 
-code/ghostguard/    ⚠ ABANDONED — see below
-REVIEW.md           Audit of the abandoned direction
-ADVISOR_BRIEF.md    Findings from the abandoned direction
+docs/index.html           The findings page published above
+JETSON_SETUP.md           Board bring-up, and the JetPack 7 blockers with fixes
+WORKFLOW.md               Plan to the 27 September deadline
 ```
 
-## ⚠ About `code/ghostguard/` and its results
+## Reproducing this
 
-That directory, and the numbers in `REVIEW.md`, `ADVISOR_BRIEF.md`, and `results/`, belong
-to an **earlier, abandoned project** on cooperative-perception security. Read them with two
-things in mind:
+`code/edge/jetson_patches/` holds the pieces that do not exist anywhere else:
 
-1. **Every number came from a synthetic simulator** (`code/ghostguard/sim.py`) whose
-   parameters — detection rates, pose error, attacker behaviour, risk weights — were chosen
-   by hand. They are design checks on whether a decision rule was well-posed, **never
-   benchmark performance**, and nothing in them was validated against real data.
-2. **The direction was dropped** on advice that it combined two research areas and rested
-   on a threat model with no real-world evidence: V2X message attacks on deployed
-   autonomous vehicles have no documented instance, because V2X is not deployed at scale.
+| file | what it solves |
+|---|---|
+| `tumtraf_to_dair.py` | Converts TUMTraf OpenLABEL into DAIR-V2X-I layout so the *verified* `dair2kitti.py` and `gen_info_dair.py` run unchanged. Camera choice, transform direction and ground alignment each verified by measurement, not assumption. |
+| `rotate_iou_cpu.py` + `test_rotate_iou.py` | CPU rotated-box IoU, because **numba's CUDA backend segfaults on this board** (a trivial kernel exits 139). Unit-tested, including the 90°-rotation case where a sign error hides. |
+| `eval_crossdataset.py` | Runs a source-domain model on a target domain **without recalibrating** — deliberately, since source-domain calibration is the effect under test. |
+| `loc_error.py`, `yaw_check.py` | The diagnostics that isolated orientation as the failure mode. |
 
-The work is kept because the audit that killed it was useful, and because the
-falsehood-versus-harm measurement in it is still an interesting result. It is not the
-current project.
+`JETSON_SETUP.md` documents the eight blockers between a 2022 MMLab stack and JetPack 7,
+including two defects in the shared lab container itself: `import scipy.sparse` fails out of
+the box, and its PyTorch is built without `torch.distributed`.
 
-## Running the edge harness
+## ⚠ `code/ghostguard/` is abandoned
 
-Export the ONNX models on any machine — CPU-only PyTorch is fine, no GPU needed:
-
-```bash
-pip install --user onnx
-python code/edge/export_backbone.py                       # backbone only
-python code/edge/occ_model.py --view-transform skip       # lower bound
-python code/edge/occ_model.py --view-transform scatter    # upper bound
-```
-
-Then benchmark on the Jetson:
-
-```bash
-scp onnx/*.onnx code/edge/bench_trt.py jetson:~/bench/
-ssh jetson "sudo nvpmodel -m 0 && sudo jetson_clocks"
-ssh jetson "cd ~/bench && python3 bench_trt.py --onnx flashocc_shaped_skip.onnx --tag 15W"
-```
-
-See `code/edge/README.md` for the full procedure, failure branches, and how to read the
-numbers honestly. The occupancy model is **untrained** — it reproduces FlashOcc's
-architecture and tensor shapes so that latency and memory are representative, and it
-predicts nothing. Every number from it is a cost measurement, never an accuracy
-measurement.
+That directory, and the numbers in `REVIEW.md`, `ADVISOR_BRIEF.md` and `results/`, belong to
+an **earlier project** on cooperative-perception security. Every figure there came from a
+hand-parameterised synthetic simulator with no trained detector — design checks, never
+benchmark performance. The direction was dropped because V2X message attacks on deployed
+vehicles have no documented real-world instance. Kept because the audit that killed it was
+useful.
 
 ## References
 
-- **FlashOcc** — occupancy via channel-to-height, no 3D decoder. arXiv:2311.12058
-- **DG-BEV** — cross-dataset BEV detection collapse. CVPR 2023, arXiv:2303.01686
-- **CUDA-BEVFusion / CUDA-V2XFusion** — NVIDIA TensorRT deployments with published Jetson
-  Orin numbers. [NVIDIA-AI-IOT/Lidar_AI_Solution](https://github.com/NVIDIA-AI-IOT/Lidar_AI_Solution)
-- **Occ3D** — occupancy benchmark. NeurIPS 2023
-- **UniOcc** — unified occupancy benchmark enabling cross-dataset analysis. ICCV 2025
+- **DG-BEV** — cross-dataset BEV collapse, 7% of oracle on nuScenes→Waymo. CVPR 2023, arXiv:2303.01686
+- **BEVHeight** — roadside 3D detection via height, the DAIR-V2X-I baseline. CVPR 2023
+- **CUDA-BEVFusion / CUDA-V2XFusion** — [NVIDIA-AI-IOT/Lidar_AI_Solution](https://github.com/NVIDIA-AI-IOT/Lidar_AI_Solution)
+- **TUMTraf Intersection (R2)** — German roadside dataset, [innovation-mobility.com](https://innovation-mobility.com/en/project-providentia/a9-dataset/)
+- **DAIR-V2X** — infrastructure-side cooperative perception benchmark. CVPR 2022
+- **Shortcut learning in deep neural networks** — Geirhos et al., *Nature Machine Intelligence* 2020
 
 ## License
 
