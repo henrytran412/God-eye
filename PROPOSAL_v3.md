@@ -31,7 +31,7 @@ found it isolated only in-domain or under adversarial perturbation, never under 
 cross-dataset shift, and never for roadside sensors.
 
 This project will test whether domain fragility concentrates in specific components, and
-whether the fragile one can be repaired without target labels. Three label-free
+whether the fragile one can be repaired without target labels. Four label-free
 interventions will be measured against a supervised oracle.
 
 ---
