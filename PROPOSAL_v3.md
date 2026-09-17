@@ -10,7 +10,7 @@
 
 ---
 
-## Synopsis of Proposed Research (247 words)
+## Synopsis of Proposed Research (240 words)
 
 Roadside 3D detectors are trained at one intersection and deployed at another. Published
 accuracy is measured on the training distribution; deployment is not. The loss is known to
