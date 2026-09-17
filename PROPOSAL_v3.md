@@ -6,34 +6,33 @@
 **Track:** Undergraduate Research Project ($1,500)
 **Period:** Fall 2026 – Spring 2027 · Final report due 30 May 2027
 
-**Title:** Diagnosing and Repairing Orientation Failure in Roadside 3D Detection
+**Title:** Which Component Fails When a Roadside Detector Moves?
 
 ---
 
-## Synopsis of Proposed Research (243 words)
+## Synopsis of Proposed Research (247 words)
 
-Roadside 3D object detectors are trained at one intersection and deployed at
-another. Published accuracy is measured on the training distribution; deployment is
-not. Prior work establishes that this costs a great deal — a 70–90% drop in
-detection rate across LiDAR, geography and weather [Tsai 2023] — but treats the
-loss as a single number and attempts to close it wholesale.
+Roadside 3D detectors are trained at one intersection and deployed at another. Published
+accuracy is measured on the training distribution; deployment is not. The loss is known to
+be large — a reported 70–90% drop in detection rate across changes in lidar, geography and
+weather [1] — but the field reports it as a single number and attempts to close it wholesale.
 
-Preliminary measurements on a Jetson Orin Nano suggest the loss is not uniform.
-Evaluating NVIDIA's pretrained V2XFusion zero-shot from DAIR-V2X-I (Beijing) to
-TUMTraf Intersection (Munich), detection and position largely survive, while
-heading estimation collapses: vehicles within ±5° of true heading fall from 88% to
-28%, with the median error unchanged at −0.2° in both domains. Because a ~20°
-heading error on a 4.1 × 1.9 m box clears IoU 0.25 but not IoU 0.5, this single
-mode explains why Car accuracy falls 69.70 → 0.13 AP while Pedestrian and Cyclist
-retain 56% and 65%.
+Preliminary measurements on a Jetson Orin Nano suggest the loss is not uniform. Evaluating
+NVIDIA's pretrained V2XFusion [12] zero-shot from DAIR-V2X-I (Beijing) [10] to TUMTraf
+Intersection (Munich) [11], detection and position largely survive while heading estimation collapses:
+vehicles within ±5° of true heading fall from 88% to 28%, with the median error unchanged
+at −0.2° in both domains. Because roughly 20° of heading error on a 4.1 × 1.9 m box clears
+IoU 0.25 but not IoU 0.5, this one mode explains why Car accuracy falls 69.70 → 0.13 AP
+while Pedestrian and Cyclist retain 56% and 65%.
 
-This project will test whether domain fragility concentrates in specific network
-components, and whether the fragile component can be repaired without target-domain
-labels. Three interventions will be evaluated against a supervised oracle:
-recalibrating INT8 quantization ranges on unlabeled target data, adapting only the
-orientation head, and replacing global coordinates with local-structure features.
-The deliverable is a per-component fragility profile and a measurement of how much
-of the gap each label-free repair recovers.
+Heading is already treated as a separate error axis in-domain — nuScenes reports mAOE
+independently of mATE and mASE [2] — but a systematic search of the adaptation literature
+found it isolated only in-domain or under adversarial perturbation, never under natural
+cross-dataset shift, and never for roadside sensors.
+
+This project will test whether domain fragility concentrates in specific components, and
+whether the fragile one can be repaired without target labels. Three label-free
+interventions will be measured against a supervised oracle.
 
 ---
 
@@ -41,70 +40,69 @@ of the gap each label-free repair recovers.
 
 ## A.1 Current Research
 
-Three research communities each measure part of the deployment problem, and none
-measures the intersection.
+**The cross-dataset drop is large and label-free adaptation partly closes it.** Self-training
+recovers 16–75% of the source-only-to-oracle gap across four LiDAR transfers using no target
+labels and no target statistics; on Waymo→KITTI it lifts Car AP₃D from 27.48 to 61.83 against
+a 73.45 oracle [3]. Cheaper still, a purely source-side augmentation — random object scaling —
+recovers about 86% of what the weakly supervised size prior buys (+27.19 AP₃D against +31.72),
+and *outperforms* it on cyclist [4].
 
-**Efficiency and deployment.** NVIDIA publishes compressed accuracy for
-CUDA-BEVFusion and V2XFusion on the datasets those models were trained on. Their
-V2XFusion table reports INT8 post-training quantization costing essentially nothing
-in-domain on DAIR-V2X-I.
+**Weak supervision is not automatically better.** Statistical Normalization consumes
+target-domain object-size statistics yet degrades transfer when the size gap is small:
+nuScenes→KITTI AP_BEV falls 51.84 → 40.03, a −37.55% closed gap [3].
 
-**Domain generalization.** ST3D [Yang, CVPR 2021] and ST3D++ [Yang 2021] adapt
-detectors to a target domain using only unlabeled target point clouds. MS3D++
-[Tsai 2023] reports that deployment in an unfamiliar domain produces "a significant
-70–90% drop in detection rate due to variations in lidar, geography, or weather."
-MLC-Net [Luo 2021] achieves unsupervised adaptation from source annotations alone.
-GBlobs [Malić, CVPR 2025] traces cross-domain failure to input representation:
-"over-reliance on these global geometric features can cause 3D detectors to
-prioritize object location and absolute position, resulting in poor cross-domain
-performance," and recovers >21 mAP on Waymo→KITTI by encoding local neighborhoods
-instead.
+**Orientation is already an established, separately-reported error axis.** nuScenes defines
+mAOE as a standalone true-positive error alongside mATE and mASE, and computes mASE only
+after aligning orientation, decoupling scale from heading by construction [2]. Earlier work
+defines paired full- and half-range metrics, FOE = |(θ−θ̂) mod 360°| and HOE = |(θ−θ̂) mod
+180°|, so that 180° flips are distinguishable from angular imprecision [5].
 
-**Orientation estimation.** Cui et al. [2020] define half- and full-range
-orientation error, HOE = |(θ − θ̂) mod 180°| and FOE = |(θ − θ̂) mod 360°|, and
-report them separately from AP. They identify why heading is hard: "the front and
-back of a vehicle may not be easily distinguishable from the LiDAR point cloud,"
-and detectors therefore lean on motion — parked vehicles fail because they "have no
-moving trajectory predictions that could be used to reliably infer the
-orientations."
+**Why heading is hard has a published explanation.** Cui et al. observe that "the front and
+back of a vehicle may not be easily distinguishable from the LiDAR point cloud," and that
+parked vehicles fail because they "have no moving trajectory predictions that could be used
+to reliably infer the orientations" [5]. Heading is under-determined by appearance; detectors
+lean on motion to resolve it.
 
 ## A.2 Limitations of Current Research
 
-**Every result above is vehicle-mounted.** Waymo, KITTI, nuScenes, Lyft and ONCE
-are all ego-vehicle datasets. A roadside sensor is static, has no ego-motion, and
-in the deployed single-frame configuration has no trajectory cue at all — precisely
-the cue Cui et al. show detectors depend on for heading.
+**Every adaptation result above is vehicle-mounted and LiDAR-only.** Waymo, KITTI, nuScenes
+and Lyft are all ego-vehicle datasets. A roadside sensor is static, has no ego-motion, and in
+the deployed single-frame configuration has no trajectory cue at all — precisely the cue
+detectors are shown to depend on for heading [5].
 
-**Domain gaps are reported as one number.** ST3D, MS3D++ and MLC-Net report AP
-recovered. None reports which *component* of the network failed, so it is not
-known whether the loss is diffuse or concentrated — and therefore not known whether
-a targeted, cheap repair is even possible.
+**Heading has never been isolated under natural domain shift.** It is measured in-domain
+(mAOE, FOE/HOE) and under adversarial perturbation, where error decomposition shows yaw is
+disproportionately sensitive and mAP-style metrics hide it [6]. MS3D++ treats heading as a
+class-dependent pseudo-label problem — catastrophic for elongated vehicles because it destroys
+IoU, tolerable for BEV-symmetric pedestrians — but reports no yaw-specific metric [1]. None of
+this is cross-dataset.
 
-**Compression and domain shift are never measured together.** Quantized accuracy is
-reported in-domain; cross-domain accuracy is reported at full precision on
-datacenter GPUs. PTQ derives its numeric ranges from a calibration set drawn from
-the *source* domain, so there is a specific reason to expect an interaction, and
-no published measurement of it.
+**Adaptation is evaluated as one number.** No work reports which *component* failed, so it is
+unknown whether the loss is diffuse or concentrated, and therefore unknown whether a targeted,
+cheap repair is even possible.
+
+**A methodological trap is documented.** Self-training's headline result is model-selection
+sensitive: Easy 3D AP has been reported fluctuating between 27.9% and 60.9% across
+randomizations, because best-epoch selection leaks target information [7]. A method that is
+label-free during training can become label-dependent at checkpoint selection.
 
 ## A.3 Research Gap
 
-No published work measures **per-component** domain fragility for roadside 3D
-detection, or tests whether the fragile component can be repaired without target
-labels. Cui et al. show heading is under-determined by LiDAR appearance in the
-vehicle-mounted case; whether a static roadside detector substitutes a *scene
-geometry* prior for the motion cue it lacks is untested.
+A systematic, adversarially-verified literature search returned **no** cross-dataset results
+for roadside datasets (DAIR-V2X-I, Rope3D, TUMTraf), **no** LiDAR+camera fusion transfers, and
+**nothing** on INT8 quantization versus out-of-distribution robustness. That is a limit of the
+search rather than proof of absence — the roadside literature exists — but it establishes that
+per-component fragility for roadside 3D detection is, at minimum, not a well-covered question.
 
 # B. Specific Proposed Research and Why Important
 
-**Question.** Does domain fragility in roadside 3D perception concentrate in
-specific network components, and can the fragile component be repaired using only
-unlabeled target data?
+**Question.** Does domain fragility in roadside 3D perception concentrate in specific network
+components, and can the fragile component be repaired using only unlabeled target data?
 
-**Preliminary evidence (already collected).** A full pipeline was built and
-validated on a borrowed Jetson Orin Nano. It reproduces NVIDIA's published
-DAIR-V2X-I accuracy to within 0.02–0.04 AP on Car and Pedestrian, which
-establishes that subsequent measurements are trustworthy rather than artifacts.
-Zero-shot transfer to TUMTraf Intersection (2,160 frames) then gives:
+**Preliminary evidence, already collected.** A full pipeline was built and validated on a
+borrowed Jetson Orin Nano. It reproduces NVIDIA's published DAIR-V2X-I accuracy [10,12] to within
+0.02–0.04 AP on Car and Pedestrian, establishing that subsequent measurements are trustworthy
+rather than artifacts. Zero-shot transfer to TUMTraf Intersection [11] (2,160 frames) gives:
 
 | 3D AP, moderate | DAIR-V2X-I | TUMTraf | retained |
 |---|---|---|---|
@@ -112,130 +110,129 @@ Zero-shot transfer to TUMTraf Intersection (2,160 frames) then gives:
 | Pedestrian @ IoU 0.25 | 49.39 | 27.61 | 55.9% |
 | Cyclist @ IoU 0.25 | 57.90 | 37.76 | 65.2% |
 
-| heading error, vehicles | DAIR-V2X-I | TUMTraf |
+| vehicle heading error | DAIR-V2X-I | TUMTraf |
 |---|---|---|
 | median (signed) | −0.2° | −0.2° |
 | standard deviation | 12.4° | 24.0° |
 | within ±5° | 88% | 28% |
 
-The median is identical across domains, which excludes a coordinate or calibration
-error — the bias is correct and the reliability is not. The error is also
-multi-modal, clustering near +15…30° and −30…−60°, consistent with a learned prior
-over road directions rather than random degradation.
+The median is identical across domains, which excludes a coordinate or calibration error: the
+bias is correct and the reliability is not. The error is multi-modal, clustering near +15…30°
+and −30…−60° — consistent with a learned prior over road directions rather than random
+degradation. The class pattern independently matches MS3D++'s observation that heading error
+destroys IoU for elongated vehicles while symmetric classes tolerate it [1].
 
-**Why it matters.** A missed detection is a failure mode downstream planners are
-built to tolerate. A confident *wrong heading* is not: heading feeds motion
-prediction, so a correctly located vehicle with a 25° heading error yields a
-predicted trajectory that goes somewhere the vehicle does not. The failure is
-invisible to any metric that does not isolate orientation, and mAP at loose IoU
-hides it entirely. If fragility is concentrated, repair can be cheap and local; if
-diffuse, retraining on labeled target data is the only option, which does not scale
-to per-intersection deployment.
+**Why it matters.** A missed detection is a failure mode downstream planners are built to
+tolerate. A confident *wrong heading* is not: heading feeds motion prediction, so a correctly
+located vehicle with a 25° heading error yields a predicted trajectory going somewhere the
+vehicle is not. If fragility is concentrated, repair can be local and label-free; if diffuse,
+retraining on labeled target data is the only option, which does not scale to per-intersection
+deployment.
 
 # C. Methodology and Why Innovative
 
-**C.1 Per-component fragility profile.** Adapt the sub-task error decomposition of
-MonoDLE [Ma, CVPR 2021]: substitute ground truth for one predicted quantity at a
-time — heading, center, size, class — and re-measure AP. Applied in-domain and
-cross-domain, the *difference* in each substitution's effect attributes the
-cross-dataset drop to specific components. MonoDLE applies this protocol in-domain
-to a monocular detector; applying it across a domain gap, to a LiDAR+camera
-roadside detector, is new.
+**C.1 Per-component fragility profile.** Adapt the sub-task attribution protocol of monodle
+[8]: substitute ground truth for one predicted quantity at a time — heading, center, size,
+class — and re-measure AP. Applied both in-domain and cross-domain, the *difference* in each
+substitution's effect attributes the drop to specific components. monodle applies this
+in-domain to a monocular detector; applying it across a natural domain gap, to a LiDAR+camera
+roadside detector, is what is new.
 
-**C.2 Test the scene-geometry hypothesis.** If heading rests on a learned road-angle
-prior, the multi-modal error clusters must align with the *source* intersection's
-lane headings. This is directly falsifiable: extract lane bearings for both
-intersections and correlate against the error distribution. A null result refutes
-the hypothesis and redirects the work, which is why it is scheduled first.
+**C.2 Test the road-geometry hypothesis.** If heading rests on a learned road-angle prior, the
+error clusters must align with the *source* intersection's lane bearings. This is directly
+falsifiable, and is scheduled first because a null result redirects the work.
 
-**C.3 Three label-free repairs, measured against an oracle.**
+**C.3 Four label-free repairs, measured against an oracle.**
 
-| intervention | supervision needed | cost |
+| intervention | supervision | precedent |
 |---|---|---|
-| Recalibrate INT8 ranges on unlabeled target frames | none — forward passes only | minutes |
-| Adapt orientation head only, backbone frozen | pseudo-labels, self-training | hours |
-| Local-structure input features (after GBlobs) | none — source-side change | retrain source |
+| Recalibrate INT8 ranges on unlabeled target frames | none — forward passes | untested in the verified literature |
+| Adapt orientation head only, backbone frozen | pseudo-labels | — |
+| Random object scaling at source pre-training | none — source-side | +27.19 AP₃D on car [4] |
+| Local-structure input features | none — source-side | >21 mAP Waymo→KITTI [9] |
 
-A supervised oracle — fine-tuned on labeled target data — establishes the
-recoverable ceiling, so each repair is reported as a *fraction of the gap closed*,
-the convention used by ST3D and MS3D++, rather than as a raw delta.
+A supervised oracle establishes the recoverable ceiling so each repair is reported as
+*fraction of gap closed*, the convention used by the self-training literature [3].
 
-**C.4 Compression as an axis, not the headline.** Each repair is evaluated at FP16
-and INT8. Preliminary data shows quantization adds 0.0° of heading error in-domain
-and +1.2° out-of-domain; whether that is real requires repeated calibration seeds
-and per-class confidence intervals, which C.3 provides for free.
+**C.4 Guard against the documented traps.** Checkpoints will be selected on a source-domain
+validation split, never on target performance, because best-epoch selection on the target
+leaks label information and inflates results [7]. Statistical Normalization will be included
+as a *negative control* rather than a baseline to beat, since it is known to degrade transfer
+when the size gap is small [3]. Per-class AP will be reported throughout, never a single
+averaged mAP, because the class balance differs between the two domains.
 
-**Why innovative.** Existing adaptation methods treat the detector as one object
-and ask how much AP returns. This project asks *which part broke*, then repairs
-that part. It also moves the orientation question from the vehicle-mounted,
-multi-frame setting where it was first identified into the static, single-frame
-roadside setting where the motion cue that previously rescued it does not exist.
+**C.5 Compression as an axis, not the headline.** Each repair is evaluated at FP16 and INT8.
+Preliminary data shows quantization adds 0.0° of heading error in-domain and +1.2°
+out-of-domain; establishing whether that is real requires repeated calibration seeds and
+per-class confidence intervals, which C.3 supplies.
+
+**Why innovative.** Existing adaptation methods treat the detector as one object and ask how
+much AP returns. This asks *which part broke*, then repairs that part. It also moves the
+orientation question out of the vehicle-mounted, multi-frame setting where it was identified
+and into the static, single-frame roadside setting where the motion cue that previously
+rescued it does not exist.
 
 # D. Milestones and Timeline
 
 | period | milestone | deliverable |
 |---|---|---|
-| Sep–Oct 2026 | Lane-bearing correlation (C.2); second target domain (Rope3D or V2X-Seq-SPD) converted | Hypothesis confirmed or refuted |
-| Nov–Dec 2026 | Per-component fragility profile (C.1), in- and cross-domain, two dataset pairs | Fragility table; first draft figure set |
-| Jan–Feb 2027 | Supervised oracle; repairs 1 and 2 (C.3) with repeated seeds | Fraction-of-gap-closed for each |
-| Mar 2027 | Repair 3; full FP16/INT8 matrix; Jetson latency for any deployable repair | Complete results |
+| Sep–Oct 2026 | Lane-bearing correlation (C.2); second target domain converted | Hypothesis confirmed or refuted |
+| Nov–Dec 2026 | Per-component fragility profile (C.1), two dataset pairs | Fragility table; figure set |
+| Jan–Feb 2027 | Supervised oracle; repairs 1–2 with repeated seeds | Fraction-of-gap-closed per repair |
+| Mar 2027 | Repairs 3–4; full FP16/INT8 matrix; Jetson latency for deployable repairs | Complete results |
 | Apr 2027 | Writing; SJSU Research Showcase | Draft manuscript |
 | May 2027 | Final report | Submitted by 30 May 2027 |
 
-**Risk and contingency.** The oracle is the only step requiring substantial GPU
-time. If unavailable, results are reported as absolute recovery rather than
-fraction-of-oracle — weaker, but publishable. If C.2 refutes the scene-geometry
-hypothesis, C.1 and C.3 are unaffected: the fragility profile and the repairs stand
-on their own.
+**Risk and contingency.** The oracle is the only step needing substantial GPU time; without
+it, results are reported as absolute recovery rather than fraction-of-oracle — weaker but
+publishable. If C.2 refutes the road-geometry hypothesis, C.1 and C.3 are unaffected.
 
 # E. Anticipated Outcome
 
-1. **A per-component fragility profile** for roadside 3D detection across two
-   dataset pairs — the first attribution of a cross-dataset drop to specific network
-   components rather than a single AP number.
-2. **A measurement of how much of the gap each label-free repair recovers**, with
-   confidence intervals, directly comparable to the fraction-of-gap convention used
-   by ST3D and MS3D++.
-3. **An answer on quantization**: whether INT8 amplifies domain fragility, measured
-   on a mechanism-level metric sensitive enough to resolve it.
-4. **Released artifacts**: the TUMTraf→DAIR converter, the JetPack 7 deployment
-   recipe, and all evaluation code, already public at
-   `github.com/henrytran412/God-eye`.
+1. **A per-component fragility profile** for roadside 3D detection across two dataset pairs —
+   attributing a cross-dataset drop to specific components rather than a single AP number.
+2. **A measurement of how much of the gap each label-free repair recovers**, with confidence
+   intervals, comparable to the fraction-of-gap convention in the adaptation literature.
+3. **The first cross-dataset heading-error measurement for roadside sensors**, reported as a
+   metric distinct from AP.
+4. **An answer on quantization**: whether INT8 amplifies domain fragility, measured on a
+   mechanism-level metric sensitive enough to resolve it.
+5. **Released artifacts** — the TUMTraf→DAIR converter, the JetPack 7 deployment recipe and
+   all evaluation code, already public at `github.com/henrytran412/God-eye`.
 
 Target venues: SJSU Research Showcase; a workshop paper at CVPR, ICRA or IROS.
 
-**Budget ($300 implementation).** Portable SSD for dataset storage (~$120);
-Jetson power monitoring and cabling (~$80); remaining for dataset access and
-incidental hardware.
+**Budget ($300).** Portable SSD for dataset storage (~$120); Jetson power-monitoring hardware
+and cabling (~$80); remainder for dataset access and incidentals.
 
 ---
 
 ## References
 
-1. Tsai, D., Berrio, J.S., Shan, M., Nebot, E., Worrall, S. *MS3D++: Ensemble of
-   Experts for Multi-Source Unsupervised Domain Adaptation in 3D Object Detection.*
-   arXiv:2308.05988, 2023.
-2. Cui, H., Chou, F.-C., Charland, J., Vallespi-Gonzalez, C., Djuric, N.
-   *Uncertainty-Aware Vehicle Orientation Estimation for Joint Detection-Prediction
-   Models.* arXiv:2011.03114, 2020.
-3. Malić, D., Fruhwirth-Reisinger, C., Schulter, S., Possegger, H. *GBlobs: Explicit
-   Local Structure via Gaussian Blobs for Improved Cross-Domain LiDAR-based 3D
-   Object Detection.* CVPR 2025. arXiv:2503.08639.
-4. Luo, Z., Cai, Z., Zhou, C., Zhang, G., Zhao, H., Yi, S., Lu, S., Li, H., Zhang,
-   S., Liu, Z. *Unsupervised Domain Adaptive 3D Detection with Multi-Level
-   Consistency (MLC-Net).* arXiv:2107.11355, 2021.
-5. Yang, J., Shi, S., Wang, Z., Li, H., Qi, X. *ST3D: Self-training for Unsupervised
-   Domain Adaptation on 3D Object Detection.* CVPR 2021. arXiv:2103.05346.
-6. Yang, J. et al. *ST3D++: Denoised Self-training for Unsupervised Domain
-   Adaptation on 3D Object Detection.* arXiv:2108.06682, 2021.
-7. Ma, X., Zhang, Y., Xu, D., Zhou, D., Yi, S., Li, H., Ouyang, W. *Delving into
-   Localization Errors for Monocular 3D Object Detection (MonoDLE).* CVPR 2021.
-   arXiv:2103.16237.
-8. Yang, L. et al. *BEVHeight: A Robust Framework for Vision-based Roadside 3D
-   Object Detection.* CVPR 2023.
-9. Yu, H. et al. *DAIR-V2X: A Large-Scale Dataset for Vehicle-Infrastructure
-   Cooperative 3D Object Detection.* CVPR 2022.
-10. Zimmer, W. et al. *TUMTraf Intersection Dataset: All You Need for
-    Urban 3D Camera-LiDAR Roadside Perception.* IEEE ITSC 2023.
-11. NVIDIA. *CUDA-BEVFusion and CUDA-V2XFusion*, Lidar_AI_Solution.
-    github.com/NVIDIA-AI-IOT/Lidar_AI_Solution.
+1. Tsai, D., Berrio, J.S., Shan, M., Nebot, E., Worrall, S. *MS3D++: Ensemble of Experts for
+   Multi-Source Unsupervised Domain Adaptation in 3D Object Detection.* IEEE T-IV, 2024.
+   arXiv:2308.05988.
+2. nuScenes detection benchmark — mAOE, mATE, mASE definitions. nuScenes devkit.
+   github.com/nutonomy/nuscenes-devkit
+3. Yang, J., Shi, S., Wang, Z., Li, H., Qi, X. *ST3D: Self-training for Unsupervised Domain
+   Adaptation on 3D Object Detection.* CVPR 2021. arXiv:2103.05346.
+4. Yang, J., Shi, S., Wang, Z., Li, H., Qi, X. *ST3D++: Denoised Self-training for
+   Unsupervised Domain Adaptation on 3D Object Detection.* IEEE T-PAMI 2022.
+   arXiv:2108.06682.
+5. Cui, H., Chou, F.-C., Charland, J., Vallespi-Gonzalez, C., Djuric, N. *Uncertainty-Aware
+   Vehicle Orientation Estimation for Joint Detection-Prediction Models.* 2020.
+   arXiv:2011.03114.
+6. Chandorkar, A. et al. *Comprehensive Robustness Analysis of LiDAR-based 3D Object Detection
+   in Autonomous Driving.* 2026. arXiv:2607.02074.
+7. Independent reproducibility analysis of ST3D self-training. 2024. arXiv:2408.12708.
+8. Ma, X., Zhang, Y., Xu, D., Zhou, D., Yi, S., Li, H., Ouyang, W. *Delving into Localization
+   Errors for Monocular 3D Object Detection.* CVPR 2021. arXiv:2103.16237.
+9. Malić, D., Fruhwirth-Reisinger, C., Schulter, S., Possegger, H. *GBlobs: Explicit Local
+   Structure via Gaussian Blobs for Improved Cross-Domain LiDAR-based 3D Object Detection.*
+   CVPR 2025. arXiv:2503.08639.
+10. Yu, H. et al. *DAIR-V2X: A Large-Scale Dataset for Vehicle-Infrastructure Cooperative 3D
+    Object Detection.* CVPR 2022.
+11. Zimmer, W. et al. *TUMTraf Intersection Dataset: All You Need for Urban 3D Camera-LiDAR
+    Roadside Perception.* IEEE ITSC 2023.
+12. NVIDIA. *CUDA-BEVFusion and CUDA-V2XFusion*, Lidar_AI_Solution.
+    github.com/NVIDIA-AI-IOT/Lidar_AI_Solution
