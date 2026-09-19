@@ -1,0 +1,149 @@
+"""Zero-shot cross-dataset evaluation with one training-free repair applied.
+
+Same contract as eval_crossdataset.py -- a source-domain model, a target dataset,
+no retraining and no target labels -- but with a switch for each intervention so
+they can be swept from the queue runner without editing code.
+
+The interventions target what the attribution experiment actually found. Recall
+collapse is 84% of the Car drop (only 22.9% of target GT gets any prediction
+within 2.5 m, against 76.5% in-domain), so the levers here mostly aim at getting
+boxes emitted at all, not at polishing the boxes that already exist.
+
+  --score-threshold X   the head discards proposals below 0.1 by default. If the
+                        target's confidences are uniformly depressed, that floor
+                        alone can erase most detections.
+  --intensity-scale S   PointPillars feeds intensity in as a feature channel. The
+                        Ouster on the TUMTraf mast and DAIR's sensor do not share
+                        an intensity scale, so the pillar features land off the
+                        training manifold.
+  --intensity-const C   replace intensity with a constant, removing the channel's
+                        domain dependence entirely.
+  --z-shift Z           matched pairs put predicted car boxes 0.49 m below GT;
+                        this shifts the input cloud instead of the output.
+
+The model is a whole-module torch.save, so test-time thresholds are baked into
+the pickled object rather than read from the config -- they are patched on the
+loaded module here, and the patch is echoed so a log always states what ran.
+"""
+import argparse
+import warnings
+from functools import partial
+
+import mmcv
+import numpy as np
+import torch
+from mmcv.parallel import MMDataParallel
+from torchpack.utils.config import configs
+from mmdet3d.apis import single_gpu_test
+from mmdet3d.datasets import build_dataloader, build_dataset
+from mmdet3d.datasets.v2x_dataset import collate_fn
+from mmdet3d.utils import recursive_eval
+
+warnings.filterwarnings("ignore")
+
+
+def patch_threshold(model, thr):
+    """Lower the head's proposal floor on an already-pickled module."""
+    hits = []
+    root = model.module if hasattr(model, "module") else model
+    for name, mod in root.named_modules():
+        for attr in ("score_threshold",):
+            if hasattr(mod, attr) and isinstance(getattr(mod, attr), (int, float)):
+                hits.append(f"{name}.{attr}: {getattr(mod, attr)} -> {thr}")
+                setattr(mod, attr, thr)
+        bc = getattr(mod, "bbox_coder", None)
+        if bc is not None and hasattr(bc, "score_threshold"):
+            hits.append(f"{name}.bbox_coder.score_threshold: "
+                        f"{bc.score_threshold} -> {thr}")
+            bc.score_threshold = thr
+        tc = getattr(mod, "test_cfg", None)
+        if isinstance(tc, dict) and "score_threshold" in tc:
+            hits.append(f"{name}.test_cfg[score_threshold]: "
+                        f"{tc['score_threshold']} -> {thr}")
+            tc["score_threshold"] = thr
+    for h in hits:
+        print("  patched", h)
+    if not hits:
+        print("  WARNING: no score_threshold found to patch")
+    return len(hits)
+
+
+def patch_points(dataset, scale=None, const=None, zshift=None):
+    """Wrap load_pcd so the input cloud is transformed before it reaches the net."""
+    orig = dataset.load_pcd
+
+    def wrapped(*a, **k):
+        out = orig(*a, **k)
+        pts, rest = (out[0], out[1:]) if isinstance(out, tuple) else (out, ())
+        arr = pts.numpy() if torch.is_tensor(pts) else pts
+        arr = np.asarray(arr)
+        if arr.ndim == 2 and arr.shape[1] >= 4:
+            if zshift is not None:
+                arr[:, 2] += zshift
+            if const is not None:
+                arr[:, 3] = const
+            elif scale is not None:
+                arr[:, 3] *= scale
+        pts = torch.from_numpy(arr) if torch.is_tensor(pts) else arr
+        return (pts,) + rest if rest else pts
+
+    dataset.load_pcd = wrapped
+    print(f"  patched load_pcd (scale={scale} const={const} zshift={zshift})")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("config")
+    ap.add_argument("checkpoint")
+    ap.add_argument("--out", default="")
+    ap.add_argument("--score-threshold", type=float, default=None)
+    ap.add_argument("--intensity-scale", type=float, default=None)
+    ap.add_argument("--intensity-const", type=float, default=None)
+    ap.add_argument("--z-shift", type=float, default=None)
+    ap.add_argument("--skip-eval", action="store_true")
+    args = ap.parse_args()
+
+    configs.load(args.config, recursive=True)
+    cfg = mmcv.Config(recursive_eval(configs), filename=args.config)
+    torch.backends.cudnn.benchmark = cfg.get("cudnn_benchmark", False)
+
+    dataset = build_dataset(cfg.data.test)
+    if any(x is not None for x in (args.intensity_scale, args.intensity_const,
+                                   args.z_shift)):
+        patch_points(dataset, args.intensity_scale, args.intensity_const,
+                     args.z_shift)
+
+    data_loader = build_dataloader(
+        dataset, samples_per_gpu=1,
+        workers_per_gpu=0 if args.intensity_scale or args.intensity_const
+        or args.z_shift else cfg.data.get("workers_per_gpu", 4),
+        dist=False, shuffle=False,
+    )
+    # this repo's samples are a 15-element list, not a dict; mmcv's default
+    # collate cannot batch them
+    data_loader.collate_fn = partial(collate_fn, is_return_depth=False)
+    print(f"target dataset: {len(dataset)} frames")
+
+    model = torch.load(args.checkpoint, map_location="cuda", weights_only=False)
+    model = model.cuda().eval()
+    if not isinstance(model, MMDataParallel):
+        model = MMDataParallel(model, device_ids=[0])
+    if not hasattr(model, "CLASSES"):
+        model.CLASSES = dataset.classes
+    if args.score_threshold is not None:
+        patch_threshold(model, args.score_threshold)
+
+    outputs = single_gpu_test(model, data_loader)
+    n = sum(len(o["scores_3d"]) for o in outputs)
+    print(f"predictions emitted: {n} ({n/max(len(outputs),1):.1f} per frame)")
+
+    if args.out:
+        mmcv.dump(outputs, args.out)
+        print(f"wrote {args.out}")
+    if not args.skip_eval:
+        print(dataset.evaluate(outputs))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
