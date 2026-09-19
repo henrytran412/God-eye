@@ -237,11 +237,49 @@ outcome worth having, even though it removes the last repair candidate.
 
 The −0.50 point does lift Car to 2.08 against the 1.73 control, but Pedestrian
 falls 51.66 → 34.77 and Cyclist 36.92 → 28.91 at the same time, and by −1.00 Car
-is back under the control at 1.01. A narrow +0.35 bump, at absolute values near
-1–2 AP where 400 frames carry real noise, with the small classes paying for it.
-A full-split rerun and a source-domain control are queued; the operating-point
-sweep already showed how readily an apparent repair turns out to help both
-domains equally.
+is back under the control at 1.01.
+
+**It did not replicate.** Re-run on the full 1620-frame split:
+
+| z = −0.50 | Car | Ped | Cyc |
+|---|---|---|---|
+| baseline | **1.83** | **43.11** | **43.13** |
+| full split | 1.32 | 33.43 | 34.37 |
+| 400-frame slice had said | *2.08* | *34.77* | *28.91* |
+
+Car goes **down** 0.51, not up 0.35. The peak was subset noise at absolute
+values near 1–2 AP. The source control was cancelled as moot: a shift that does
+not help the target needs no cross-domain comparison.
+
+Worth carrying into next year's protocol. A seven-point sweep on a 400-frame
+slice produced a clean-looking, interpretable maximum that was simply not there.
+Section C.4 of the proposal already warns about model selection on noisy
+evidence; this is that trap, met directly, on our own data.
+
+## Conclusion: no training-free repair recovers Car
+
+| # | repair | Car 3d | verdict |
+|---|---|---|---|
+| — | baseline (DAIR-calibrated INT8) | **1.83** | — |
+| 1 | INT8 recalibrated on unlabeled target frames | 0.15 | worse |
+| 2 | detection-head threshold 0.1 → 0.05 | 1.83 | no effect |
+| 3 | evaluator operating point 0.45 → 0.20 | **2.30** | +0.47, **but the source gains equally** |
+| 4 | intensity replaced by a constant | 0.23 | much worse |
+| 5 | camera input blanked | 0.00 | total collapse |
+| 6 | input thinned to target density (in-domain control) | 64.58 | density costs only 5.12 |
+| 7 | camera calibration audit | — | geometry sound in both domains |
+| 8 | z shift, seven points | ≤ 2.08 | no misalignment peak |
+| 9 | z = −0.50 on the full split | 1.32 | worse; the peak was noise |
+
+The single positive, repair 3, helps the source domain as much as the target, so
+it is threshold tuning rather than domain adaptation. **The net domain-specific
+improvement from nine training-free interventions is zero.**
+
+That is the finding. The failure is conjunctive — several components degrade
+moderately at once and Car's IoU 0.5 threshold converts that into a total loss —
+and no intervention leaving the weights untouched addresses more than one
+component at a time. Closing this gap requires training, which is the
+evidence-backed case for compute next year rather than an assumption.
 
 ### Still open
 
