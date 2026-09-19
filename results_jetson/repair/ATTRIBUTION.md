@@ -183,10 +183,14 @@ cross-dataset numbers should not be published as a domain-shift measurement.**
 
 ## Caveats
 
-- The cross-domain Car baseline reads 0.79 on all 2160 frames here, against the
-  published 0.13. Same pickle, so this is a scoped-versus-unscoped evaluation
-  difference that has not been run down. It does not change the picture — both
-  are catastrophic against 69.70 — but it needs resolving before publication.
+- **Resolved.** The cross-domain Car baseline reads 0.79 here against the
+  published 0.13, and the difference is precision, not evaluation scope:
+  `CROSS_DATASET.md` quotes **FP16**, while every repair in this document runs
+  on the **INT8** model. That file's own delta table gives Car Δ_out = −0.654
+  (INT8 better out-of-domain), and 0.13 + 0.654 = 0.78, matching the 0.79
+  measured here. The three figures in circulation are therefore all correct and
+  all different things: 0.13 FP16 over 2160 frames, 0.79 INT8 over 2160 frames,
+  1.83 INT8 over the 1620-frame eval split.
 - Substituting centre by construction places a box on top of a GT object, which
   guarantees the positional part of the match. The centre column is therefore an
   upper bound on the localisation term, not a neutral estimate.
