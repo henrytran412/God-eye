@@ -5,8 +5,21 @@ one predicted field at a time and re-score. The lift is the ceiling any repair
 aimed at that component could reach.
 
 **It does not support the proposal's current claim.** Heading degrades, but
-fixing it recovers almost nothing. The dominant term is detection — the model
-stops emitting boxes at all.
+fixing it recovers almost nothing: perfect yaw buys 0.06 AP on Car.
+
+What the measurements converge on instead is that **no single component is
+responsible**. Cars carry a 22.3° yaw spread, a 21% height under-prediction, a
+10% width under-prediction and a 0.49 m elevation error *simultaneously*, and
+Car is scored at IoU 0.5. Each error alone is survivable; together they put the
+box the wrong side of the threshold. Recall is the largest single term — 84% of
+the Car loss — but "the model stops detecting" overstates it, since the model
+still emits 6.3 boxes per frame. The accurate statement is that several
+components degrade moderately at once and a strict IoU threshold turns that into
+a total loss.
+
+Nine training-free repairs were then tried against that diagnosis. The best
+moved Car from 1.83 to 2.30. The negative results, and the controls that produced
+them, are the substance of this document.
 
 ## Harness validation
 
