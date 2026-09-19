@@ -170,32 +170,74 @@ class pattern directly: Pedestrian and Cyclist are scored at IoU 0.25 and retain
 "it is all recall". It is that several components degrade moderately and Car's
 strict IoU threshold converts that into a total loss.**
 
-### Open, and material
+## The camera branch is load-bearing, and its calibration is sound
 
-TUMTraf's *labels* sit where DAIR's do — 99.8% inside `point_cloud_range`, GT z
-median −1.00 against DAIR's −0.90 — but its *point cloud* ground plane is ~1 m
-lower, and predicted car boxes land 0.49 m low. Points and labels appear to
-disagree in z, which would make part of the measured "domain gap" an artifact of
-our own converter rather than a property of the domains. A z sweep
-{−0.5, 0, +0.3, +0.5, +0.7, +1.0, +1.5} on 400 frames is queued to settle it,
-with z = 0 as a control that must reproduce baseline. **Until that returns, the
-cross-dataset numbers should not be published as a domain-shift measurement.**
+| repair | Car 3d | Ped 3d | Cyc 3d |
+|---|---|---|---|
+| baseline | 1.83 | 43.11 | 43.13 |
+| **5.** camera input blanked | **0.00** | **0.00** | **0.00** |
 
-## Caveats
+Feeding a constant image takes every class to exactly zero and cuts output to
+2.1 boxes per frame. The camera is not poisoning the fuser; the model cannot run
+without it. Gating the camera under shift is therefore not an available repair.
 
-- **Resolved.** The cross-domain Car baseline reads 0.79 here against the
-  published 0.13, and the difference is precision, not evaluation scope:
-  `CROSS_DATASET.md` quotes **FP16**, while every repair in this document runs
-  on the **INT8** model. That file's own delta table gives Car Δ_out = −0.654
-  (INT8 better out-of-domain), and 0.13 + 0.654 = 0.78, matching the 0.79
-  measured here. The three figures in circulation are therefore all correct and
-  all different things: 0.13 FP16 over 2160 frames, 0.79 INT8 over 2160 frames,
-  1.83 INT8 over the 1620-frame eval split.
-- Substituting centre by construction places a box on top of a GT object, which
-  guarantees the positional part of the match. The centre column is therefore an
-  upper bound on the localisation term, not a neutral estimate.
-- Whether the converter itself drops or misplaces target objects has not been
-  ruled out as a contributor to the 22.9% match rate.
+One caveat on the strength of that claim: a constant image is not the same as a
+lidar-only architecture. The fuser still receives a well-formed but
+information-free feature map, which may be worse than a proper camera-free path.
+The honest reading is *the model cannot tolerate a constant image*.
+
+`calib_check.py` then audited the geometry by projecting GT centres through
+`lidar2camera` and the intrinsics. Both domains are sound — 100% of centres in
+front of the camera, 96.5% landing on the image for DAIR and 84.2% for TUMTraf —
+so the converter did not break the calibration. It did quantify a domain gap the
+proposal never mentioned: **TUMTraf's lens is 1.69× wider** (fx 1293 against
+2183), with objects at 31.6 m median depth against 68.3 m. The branch the model
+depends on is seeing objects at an apparent scale it never trained on, and no
+input patch reaches that.
+
+## The converter's z handling is NOT at fault
+
+If points and labels were genuinely ~0.5 m apart, shifting the input cloud up by
+that much should produce a maximum. Sweeping z on 400 frames, with z = 0 as a
+control:
+
+| z shift | Car 3d | Ped 3d | Cyc 3d | preds/frame |
+|---|---|---|---|---|
+| −1.00 | 1.01 | 29.21 | 14.19 | 11.0 |
+| **−0.50** | **2.08** | 34.77 | 28.91 | 9.6 |
+| 0 (control) | 1.73 | **51.66** | 36.92 | 7.6 |
+| +0.30 | 1.39 | 45.81 | 42.15 | 6.9 |
+| +0.50 | 1.29 | 42.25 | **44.50** | 6.5 |
+| +0.70 | 1.07 | 34.86 | 44.00 | 6.1 |
+| +1.00 | 0.80 | 22.69 | 42.55 | 5.9 |
+| +1.50 | 0.40 | 16.76 | 32.58 | 6.1 |
+
+**There is no peak at +0.5.** Car and Pedestrian decline monotonically as the
+cloud rises, Cyclist peaks at +0.5 and follows. What the curve tracks is the
+range crop — every metre up costs points off a cloud that already loses 54.5% to
+the +3 m ceiling — not label alignment.
+
+So the 0.49 m gap between predicted and true box centres is the model genuinely
+mislocating objects in an unfamiliar domain. **The cross-dataset numbers stand as
+a real domain-shift measurement, not an artifact of our pipeline.** That was the
+outcome worth having, even though it removes the last repair candidate.
+
+The −0.50 point does lift Car to 2.08 against the 1.73 control, but Pedestrian
+falls 51.66 → 34.77 and Cyclist 36.92 → 28.91 at the same time, and by −1.00 Car
+is back under the control at 1.01. A narrow +0.35 bump, at absolute values near
+1–2 AP where 400 frames carry real noise, with the small classes paying for it.
+A full-split rerun and a source-domain control are queued; the operating-point
+sweep already showed how readily an apparent repair turns out to help both
+domains equally.
+
+### Still open
+
+- Whether the converter drops or misplaces target objects has not been ruled out
+  as a contributor to the 22.9% match rate, though the calibration audit and the
+  z sweep both came back clean.
+- The camera-scale gap (1.69× focal length, 2.2× median object depth) is
+  measured but untested as a cause; testing it needs a resized-input experiment
+  or retraining.
 
 ## What this means for the proposal
 
