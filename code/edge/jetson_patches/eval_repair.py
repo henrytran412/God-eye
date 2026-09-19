@@ -96,9 +96,17 @@ def patch_blank_camera(dataset):
     print("  patched get_image: camera input blanked to the normalised mean")
 
 
-def patch_points(dataset, scale=None, const=None, zshift=None):
-    """Wrap load_pcd so the input cloud is transformed before it reaches the net."""
+def patch_points(dataset, scale=None, const=None, zshift=None, keep=None):
+    """Wrap load_pcd so the input cloud is transformed before it reaches the net.
+
+    `keep` randomly thins the cloud to that many points. It exists for the
+    decisive control: TUMTraf supplies 9,508 points inside point_cloud_range
+    per frame against DAIR's 37,930, so thinning DAIR to TUMTraf's density
+    and re-scoring in-domain says how much of the cross-dataset collapse is
+    simply sparser input rather than anything about the domain.
+    """
     orig = dataset.load_pcd
+    rng = np.random.default_rng(0)
 
     def wrapped(*a, **k):
         out = orig(*a, **k)
@@ -112,11 +120,14 @@ def patch_points(dataset, scale=None, const=None, zshift=None):
                 arr[:, 3] = const
             elif scale is not None:
                 arr[:, 3] *= scale
+            if keep is not None and len(arr) > keep:
+                arr = arr[rng.choice(len(arr), size=keep, replace=False)]
         pts = torch.from_numpy(arr) if torch.is_tensor(pts) else arr
         return (pts,) + rest if rest else pts
 
     dataset.load_pcd = wrapped
-    print(f"  patched load_pcd (scale={scale} const={const} zshift={zshift})")
+    print(f"  patched load_pcd (scale={scale} const={const} zshift={zshift} "
+          f"keep={keep})")
 
 
 def main() -> int:
@@ -128,6 +139,8 @@ def main() -> int:
     ap.add_argument("--intensity-scale", type=float, default=None)
     ap.add_argument("--intensity-const", type=float, default=None)
     ap.add_argument("--z-shift", type=float, default=None)
+    ap.add_argument("--keep-points", type=int, default=None,
+                    help="thin the cloud to N points (density control)")
     ap.add_argument("--blank-camera", action="store_true",
                     help="feed a constant image: is the camera branch harmful?")
     ap.add_argument("--skip-eval", action="store_true")
@@ -141,14 +154,15 @@ def main() -> int:
     if args.blank_camera:
         patch_blank_camera(dataset)
     if any(x is not None for x in (args.intensity_scale, args.intensity_const,
-                                   args.z_shift)):
+                                   args.z_shift, args.keep_points)):
         patch_points(dataset, args.intensity_scale, args.intensity_const,
-                     args.z_shift)
+                     args.z_shift, args.keep_points)
 
     data_loader = build_dataloader(
         dataset, samples_per_gpu=1,
         workers_per_gpu=0 if (args.intensity_scale or args.intensity_const
-                              or args.z_shift or args.blank_camera)
+                              or args.z_shift or args.blank_camera
+                              or args.keep_points)
         else cfg.data.get("workers_per_gpu", 4),
         dist=False, shuffle=False,
     )

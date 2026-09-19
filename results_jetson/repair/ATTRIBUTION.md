@@ -118,12 +118,68 @@ genuinely false positives, so the recall collapse is a **real detection
 failure**, not a thresholding artifact. That strengthens the 84% figure rather
 than explaining it away.
 
-### Still queued
+### Input-space hypotheses: intensity and density both exonerated
 
-`repair_queue.sh` continues with a camera-branch ablation (TUMTraf's optical
-axis sits about 16° further down than DAIR's, so the fuser may be receiving
-geometry it never trained on), lidar intensity renormalisation, and ground-plane
-z shifts.
+| repair | Car 3d | Ped 3d | Cyc 3d | verdict |
+|---|---|---|---|---|
+| **4.** intensity replaced by a constant | 0.23 | **19.03** | 43.28 | intensity is *informative* |
+
+The two domains' intensity medians already agree (13 against 11), and blanking
+the channel costs Pedestrian 43.11 → 19.03. Nothing to repair here.
+
+Density looked far more promising. The target supplies **9,508** points inside
+`point_cloud_range` per frame against the source's **37,930** — four times
+sparser, after 54.5% of the TUMTraf cloud is cropped as structure above the +3 m
+ceiling. The control is to thin the *source* to the target's density and score
+**in-domain**:
+
+| DAIR, scored in-domain | Car | Ped | Cyc |
+|---|---|---|---|
+| full density (37,930 points) | 69.70 | 48.87 | 57.63 |
+| thinned to 9,508 points | 64.58 | 34.79 | 46.27 |
+| cost of 4× sparser input | **−5.12** | −14.08 | −11.36 |
+
+**Density explains 5.12 AP of Car's 67.87 AP loss — 7.5%.** Car is remarkably
+robust to sparse input; it is the small classes that suffer, which is the
+opposite of the cross-domain pattern. Density is not the answer.
+
+## The failure is conjunctive
+
+Matched car pairs (score ≥ 0.4) carry several modest errors at once:
+
+| axis | measured |
+|---|---|
+| yaw | std 22.3°, 35% within ±5° |
+| height | 0.786× true |
+| width | 0.904× true |
+| length | 0.996× (correct) |
+| elevation | 0.49 m low |
+
+A 22° yaw error on a 4.1 × 1.9 m box puts BEV IoU at roughly 0.47 — just under
+the 0.5 threshold Car is scored at. Height under-prediction then drags 3D IoU to
+about 0.37. Each axis alone is survivable; together they land the wrong side of
+the line.
+
+That resolves what first looked like a contradiction. Substituting one field
+recovers almost nothing (+0.06 for yaw) because the others still fail the
+threshold, while substituting all three recovers +13.31. And it explains the
+class pattern directly: Pedestrian and Cyclist are scored at IoU 0.25 and retain
+88% and 75%, while Car at IoU 0.5 retains 3%.
+
+**The honest headline is neither "orientation is the fragile component" nor
+"it is all recall". It is that several components degrade moderately and Car's
+strict IoU threshold converts that into a total loss.**
+
+### Open, and material
+
+TUMTraf's *labels* sit where DAIR's do — 99.8% inside `point_cloud_range`, GT z
+median −1.00 against DAIR's −0.90 — but its *point cloud* ground plane is ~1 m
+lower, and predicted car boxes land 0.49 m low. Points and labels appear to
+disagree in z, which would make part of the measured "domain gap" an artifact of
+our own converter rather than a property of the domains. A z sweep
+{−0.5, 0, +0.3, +0.5, +0.7, +1.0, +1.5} on 400 frames is queued to settle it,
+with z = 0 as a control that must reproduce baseline. **Until that returns, the
+cross-dataset numbers should not be published as a domain-shift measurement.**
 
 ## Caveats
 
