@@ -75,17 +75,55 @@ carved out by hand: `tumtraf_infos_train.pkl` came out of the converter **empty*
 so `default_tumtraf.yaml` pointed its train split at the val file, and
 calibrating on that would have been transductive.
 
-| repair | Car 3d | Ped 3d | Cyc 3d |
+| repair | Car 3d | Ped 3d | Cyc 3d | verdict |
+|---|---|---|---|---|
+| baseline (DAIR-calibrated INT8) | 1.83 | 43.11 | 43.13 | — |
+| **1.** INT8 recalibrated on 540 unlabeled target frames | **0.15** | 47.34 | 42.15 | hurts Car |
+| **2.** detection head threshold 0.1 → 0.05 | 1.83 | 43.11 | 43.13 | no effect |
+| **3.** evaluator operating point 0.45 → 0.20 | 2.30 | 43.25 | 43.97 | +0.47, then plateaus |
+
+Repair 1 **hurts Car** (−1.68) while helping Pedestrian (+4.23). A useful
+negative: the proposal lists it as the cheapest intervention.
+
+Repair 2 moved nothing because `result2kitti.py:253` hardcodes
+`detection_score > 0.45`, discarding predictions *before* AP is computed. The
+head's own threshold is therefore irrelevant. That line is now
+`KITTI_SCORE_THR`, defaulting to 0.45 so published numbers stay bit-identical.
+
+### Confidence collapse is real but is not the cause
+
+| | median score | predictions/frame | survive the 0.45 cut |
 |---|---|---|---|
-| baseline (DAIR-calibrated INT8) | 1.83 | 43.11 | 43.13 |
-| **Repair 1** — INT8 recalibrated on 540 unlabeled target frames | **0.15** | **47.34** | 42.15 |
+| DAIR (source) | **0.987** | 20.5 | 18.5 — loses 10% |
+| TUMTraf (target) | **0.286** | 6.3 | 2.3 — **loses 64%** |
 
-Repair 1 **hurts Car** (−1.68) and helps Pedestrian (+4.23). Not the answer, and
-a useful negative: the proposal lists it as the cheapest intervention.
+A fixed operating point chosen where the median is 0.987 throws away nearly
+two-thirds of target predictions, which looked like free recall. It is not.
+Sweeping the operating point on **both** domains:
 
-A queue (`repair_queue.sh`) is working through score-threshold sweeps, lidar
-intensity renormalisation and ground-plane z shifts — all aimed at recall, since
-that is where the loss actually is.
+| operating point | Car tgt | Ped tgt | Cyc tgt | Car src | Ped src | Cyc src |
+|---|---|---|---|---|---|---|
+| 0.45 | 1.83 | 43.11 | 43.13 | 69.70 | 48.87 | 57.63 |
+| 0.20 | 2.30 | 43.25 | 43.97 | 69.65 | 49.97 | 58.86 |
+| 0.10 | 2.20 | 43.25 | 44.60 | — | — | — |
+| 0.01 | 2.20 | 43.25 | 44.60 | — | — | — |
+
+**The source gains as much as the target** (Ped +1.10 source against +0.14
+target; Cyc +1.23 against +0.84), so this is ordinary threshold tuning, not a
+domain-shift repair. 0.10 and 0.01 are identical because the head stops emitting
+below its own 0.1 floor.
+
+The conclusion is the unwelcome one: the predictions hidden below 0.45 are
+genuinely false positives, so the recall collapse is a **real detection
+failure**, not a thresholding artifact. That strengthens the 84% figure rather
+than explaining it away.
+
+### Still queued
+
+`repair_queue.sh` continues with a camera-branch ablation (TUMTraf's optical
+axis sits about 16° further down than DAIR's, so the fuser may be receiving
+geometry it never trained on), lidar intensity renormalisation, and ground-plane
+z shifts.
 
 ## Caveats
 

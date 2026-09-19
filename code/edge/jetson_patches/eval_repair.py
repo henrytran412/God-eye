@@ -68,6 +68,34 @@ def patch_threshold(model, thr):
     return len(hits)
 
 
+def patch_blank_camera(dataset):
+    """Replace every image with the training mean, deleting camera evidence.
+
+    The two domains do not mount their cameras alike -- TUMTraf's south1 optical
+    axis sits about 16 degrees further down than DAIR's -- so the camera branch
+    may be feeding the fuser geometry it was never trained on and suppressing
+    detections the lidar branch would otherwise make. Feeding a constant image
+    is the cheapest way to ask that question: if AP rises when the camera says
+    nothing, the camera was doing harm, and the repair is to gate it under shift.
+
+    A mean-valued image is used rather than zeros because the pipeline
+    normalises by (x - img_mean) / img_std, so the mean maps to exactly zero
+    activation instead of a large negative one.
+    """
+    orig = dataset.get_image
+
+    def wrapped(cam_infos, cams, *a, **k):
+        out = orig(cam_infos, cams, *a, **k)
+        items = list(out)
+        imgs = items[0]
+        t = imgs if torch.is_tensor(imgs) else torch.as_tensor(imgs)
+        items[0] = torch.zeros_like(t)      # post-normalisation zero == the mean
+        return tuple(items)
+
+    dataset.get_image = wrapped
+    print("  patched get_image: camera input blanked to the normalised mean")
+
+
 def patch_points(dataset, scale=None, const=None, zshift=None):
     """Wrap load_pcd so the input cloud is transformed before it reaches the net."""
     orig = dataset.load_pcd
@@ -100,6 +128,8 @@ def main() -> int:
     ap.add_argument("--intensity-scale", type=float, default=None)
     ap.add_argument("--intensity-const", type=float, default=None)
     ap.add_argument("--z-shift", type=float, default=None)
+    ap.add_argument("--blank-camera", action="store_true",
+                    help="feed a constant image: is the camera branch harmful?")
     ap.add_argument("--skip-eval", action="store_true")
     args = ap.parse_args()
 
@@ -108,6 +138,8 @@ def main() -> int:
     torch.backends.cudnn.benchmark = cfg.get("cudnn_benchmark", False)
 
     dataset = build_dataset(cfg.data.test)
+    if args.blank_camera:
+        patch_blank_camera(dataset)
     if any(x is not None for x in (args.intensity_scale, args.intensity_const,
                                    args.z_shift)):
         patch_points(dataset, args.intensity_scale, args.intensity_const,
@@ -115,8 +147,9 @@ def main() -> int:
 
     data_loader = build_dataloader(
         dataset, samples_per_gpu=1,
-        workers_per_gpu=0 if args.intensity_scale or args.intensity_const
-        or args.z_shift else cfg.data.get("workers_per_gpu", 4),
+        workers_per_gpu=0 if (args.intensity_scale or args.intensity_const
+                              or args.z_shift or args.blank_camera)
+        else cfg.data.get("workers_per_gpu", 4),
         dist=False, shuffle=False,
     )
     # this repo's samples are a 15-element list, not a dict; mmcv's default
