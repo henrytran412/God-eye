@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Nine label-free attempts to recover a roadside 3D detector's cross-domain accuracy, what each tested, and why none worked.">
+<title>Nine Repairs, Zero Gain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ink:#0E1417; --paper:#F6F8F8; --surface:#FFFFFF; --surface-2:#EDF1F1;
+  --muted:#5C6B70; --faint:#7E8C90; --rule:#D8E0E1; --rule-strong:#B9C6C8;
+  --gain:#0C919F; --gain-soft:#DCEEF0;
+  --loss:#B4531F; --loss-soft:#F6E6DA;
+  --flat:#5C6B70; --flat-soft:#E7EBEC;
+  --source:#0F6E78;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --measure:66ch;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#E4EAEB; --paper:#0B1012; --surface:#131A1D; --surface-2:#1A2326;
+    --muted:#9AA8AC; --faint:#7C8A8E; --rule:#253134; --rule-strong:#35454A;
+    --gain:#12A2B6; --gain-soft:#0D2E33;
+    --loss:#D0752F; --loss-soft:#33210F;
+    --flat:#8D9A9E; --flat-soft:#1C2528;
+    --source:#3FAAB6;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#E4EAEB; --paper:#0B1012; --surface:#131A1D; --surface-2:#1A2326;
+  --muted:#9AA8AC; --faint:#7C8A8E; --rule:#253134; --rule-strong:#35454A;
+  --gain:#12A2B6; --gain-soft:#0D2E33;
+  --loss:#D0752F; --loss-soft:#33210F;
+  --flat:#8D9A9E; --flat-soft:#1C2528;
+  --source:#3FAAB6;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:16.5px; line-height:1.62;
+  padding-inline:20px;
+}
+.wrap{max-width:980px; margin:0 auto}
+p,li{max-width:var(--measure)}
+h1,h2,h3{font-family:var(--serif); font-weight:500; text-wrap:balance; margin:0}
+a{color:var(--source)}
+a:focus-visible{outline:2px solid var(--source); outline-offset:3px; border-radius:2px}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+header.mast{padding-block:60px 36px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 18px}
+h1{font-size:clamp(32px,5.2vw,54px); line-height:1.05; letter-spacing:-.015em; max-width:16ch}
+.standfirst{font-family:var(--serif); font-size:clamp(18px,2.3vw,21.5px); line-height:1.5;
+  color:var(--muted); margin:20px 0 0; max-width:56ch}
+.byline{display:flex; flex-wrap:wrap; gap:8px 26px; margin-top:28px;
+  font-family:var(--mono); font-size:12px; color:var(--faint)}
+.byline b{color:var(--ink); font-weight:500}
+
+.figures{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); margin:34px 0 0}
+.fig{background:var(--surface); padding:16px 16px 14px}
+.fig .n{font-family:var(--mono); font-size:26px; font-weight:600; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; line-height:1.1; display:block}
+.fig .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--faint); margin-top:8px; display:block}
+.fig .s{font-size:12.5px; color:var(--muted); margin-top:4px; display:block; line-height:1.45}
+.n.gain{color:var(--gain)} .n.loss{color:var(--loss)} .n.src{color:var(--source)}
+
+section{padding-block:48px; border-bottom:1px solid var(--rule)}
+.shead{display:flex; align-items:baseline; gap:13px; margin-bottom:6px}
+.snum{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--loss);
+  letter-spacing:.06em}
+h2{font-size:clamp(23px,3.1vw,31px); line-height:1.18; letter-spacing:-.01em}
+.lede{color:var(--muted); margin:10px 0 0; font-size:17px}
+section > p{margin:16px 0 0}
+
+.note{background:var(--surface-2); border-left:3px solid var(--rule-strong);
+  padding:14px 17px; margin:26px 0 0; font-size:14.5px; color:var(--muted)}
+.note b{color:var(--ink); font-weight:600}
+.note p{margin:0; max-width:none}
+.note p + p{margin-top:9px}
+
+table{border-collapse:collapse; width:100%; font-size:14.5px; margin:22px 0 0;
+  font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto; margin:22px 0 0; -webkit-overflow-scrolling:touch}
+.scroll table{margin:0; min-width:520px}
+th,td{text-align:right; padding:9px 12px; border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child{text-align:left}
+thead th{font-family:var(--mono); font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--faint); font-weight:500;
+  border-bottom:1px solid var(--rule-strong); white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono)}
+tr.hl td{background:var(--surface-2); font-weight:600}
+
+/* --- the ledger --- */
+.ledger{margin:30px 0 0; border-top:1px solid var(--rule-strong)}
+.row{display:grid; grid-template-columns:34px 1fr; gap:0 16px;
+  padding:20px 0; border-bottom:1px solid var(--rule); align-items:start}
+.row .idx{font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--faint);
+  padding-top:3px; font-variant-numeric:tabular-nums}
+.row h3{font-size:19px; line-height:1.3}
+.why{margin:7px 0 0; font-size:15px; color:var(--muted); max-width:62ch}
+.why b{color:var(--ink); font-weight:600}
+.outcome{margin:13px 0 0; display:flex; flex-wrap:wrap; align-items:center; gap:9px 14px}
+.chip{font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+  padding:3px 9px; border-radius:2px; font-weight:600; white-space:nowrap}
+.chip.dead{background:var(--loss-soft); color:var(--loss)}
+.chip.flat{background:var(--flat-soft); color:var(--flat)}
+.chip.marg{background:var(--gain-soft); color:var(--gain)}
+.res{font-family:var(--mono); font-size:14px; font-variant-numeric:tabular-nums}
+.res .to{color:var(--faint); padding:0 3px}
+.res .v{font-weight:600}
+.v.dn{color:var(--loss)} .v.up{color:var(--gain)} .v.eq{color:var(--flat)}
+
+/* --- bar chart --- */
+.chart{margin:28px 0 0; background:var(--surface); border:1px solid var(--rule); padding:22px 20px}
+.chart .cap{font-family:var(--mono); font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--faint); margin:0 0 18px}
+.bars{display:grid; gap:9px}
+.bar{display:grid; grid-template-columns:minmax(118px,178px) 1fr 52px; gap:12px; align-items:center;
+  font-size:13.5px}
+.bar .nm{color:var(--muted); line-height:1.3}
+.bar .track{position:relative; height:19px; background:var(--surface-2); border-radius:2px}
+.bar .fill{position:absolute; inset-block:0; left:0; border-radius:2px 4px 4px 2px;
+  transition:filter .15s}
+.bar:hover .fill{filter:brightness(1.12)}
+.bar .fill.up{background:var(--gain)} .bar .fill.dn{background:var(--loss)}
+.bar .fill.eq{background:var(--flat)}
+.bar .val{font-family:var(--mono); font-size:13px; text-align:right;
+  font-variant-numeric:tabular-nums; font-weight:600}
+.baseline{position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--ink);
+  opacity:.55; z-index:2}
+.blabel{display:flex; align-items:center; gap:7px; margin:16px 0 0;
+  font-family:var(--mono); font-size:11px; color:var(--faint)}
+.bkey{width:14px; height:2px; background:var(--ink); opacity:.55; display:inline-block}
+.legend{display:flex; flex-wrap:wrap; gap:8px 18px; margin:16px 0 0;
+  font-family:var(--mono); font-size:11px; color:var(--faint)}
+.legend span{display:flex; align-items:center; gap:6px}
+.legend i{width:11px; height:11px; border-radius:2px; display:inline-block}
+
+/* --- the gap strip --- */
+.gap{display:grid; gap:10px; margin:24px 0 0}
+.gaprow{display:grid; grid-template-columns:minmax(96px,132px) 1fr 62px; gap:12px; align-items:center;
+  font-size:13.5px}
+.gaprow .nm{color:var(--muted)}
+.gaprow .track{height:26px; background:var(--surface-2); border-radius:2px; position:relative}
+.gaprow .fill{display:block; height:100%; border-radius:2px 4px 4px 2px; min-width:3px}
+.gaprow .val{font-family:var(--mono); font-size:14px; font-weight:600; text-align:right;
+  font-variant-numeric:tabular-nums}
+
+ul.plain{margin:16px 0 0; padding-left:0; list-style:none}
+ul.plain li{padding-left:20px; position:relative; margin-bottom:9px}
+ul.plain li::before{content:"—"; position:absolute; left:0; color:var(--faint)}
+ol.steps{margin:20px 0 0; padding-left:0; list-style:none; counter-reset:s}
+ol.steps li{counter-increment:s; position:relative; padding-left:38px; margin-bottom:20px;
+  max-width:var(--measure)}
+ol.steps li::before{content:counter(s); position:absolute; left:0; top:1px;
+  font-family:var(--mono); font-size:12px; font-weight:600; color:var(--loss);
+  border:1px solid var(--rule-strong); width:25px; height:25px; display:grid;
+  place-items:center; border-radius:50%}
+ol.steps b{display:block; font-size:16.5px; margin-bottom:3px}
+ol.steps .m{color:var(--muted); font-size:15px}
+
+footer{padding-block:42px 60px; font-family:var(--mono); font-size:12px; color:var(--faint)}
+footer p{max-width:none; margin:0 0 7px}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .bar{grid-template-columns:1fr; gap:4px}
+  .bar .nm{font-size:13px}
+  .bar .val{text-align:left}
+  .gaprow{grid-template-columns:1fr; gap:4px}
+  .gaprow .val{text-align:left}
+  .row{grid-template-columns:1fr; gap:0}
+  .row .idx{padding-top:0; margin-bottom:3px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Davidson Student Scholars · Roadside 3D perception · 19 Sep 2026</p>
+  <h1>Nine Repairs, Zero Gain</h1>
+  <p class="standfirst">A detector trained at a Beijing intersection keeps 3% of its accuracy at a
+  German one. Nine label-free attempts to win that back, what each was testing, and why none of
+  them worked.</p>
+  <p class="byline">
+    <span><b>Thuc Bao Tran</b> · SJSU Computer Engineering</span>
+    <span>Mentor <b>Prof. Kaikai Liu</b></span>
+    <span>Jetson Orin Nano · V2XFusion INT8</span>
+  </p>
+
+  <div class="figures">
+    <div class="fig"><span class="n src">69.70</span><span class="k">Source AP</span>
+      <span class="s">Car 3D, DAIR-V2X-I, in-domain</span></div>
+    <div class="fig"><span class="n loss">1.83</span><span class="k">Target AP</span>
+      <span class="s">Same model, TUMTraf, unchanged</span></div>
+    <div class="fig"><span class="n">2.30</span><span class="k">Best achieved</span>
+      <span class="s">After nine interventions</span></div>
+    <div class="fig"><span class="n">+0.47</span><span class="k">Total gain</span>
+      <span class="s">And the source gains it too</span></div>
+    <div class="fig"><span class="n loss">0.00</span><span class="k">Net adaptation</span>
+      <span class="s">Nothing was domain-specific</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="shead"><span class="snum">01</span><h2>What broke</h2></div>
+  <p class="lede">Detection accuracy does not degrade gracefully across intersections. It falls off
+  a cliff — but only for one class.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>3D AP, moderate</th><th>DAIR-V2X-I</th><th>TUMTraf</th><th>Retained</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>Car @ IoU 0.5</td><td class="num">69.70</td><td class="num">1.83</td><td class="num">3%</td></tr>
+      <tr><td>Pedestrian @ IoU 0.25</td><td class="num">48.87</td><td class="num">43.11</td><td class="num">88%</td></tr>
+      <tr><td>Cyclist @ IoU 0.25</td><td class="num">57.63</td><td class="num">43.13</td><td class="num">75%</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Pedestrian and Cyclist survive the move almost intact. Car does not. The difference between
+  them is not the object — it is the threshold: Car is scored at IoU 0.5, the other two at 0.25.
+  That single fact shapes everything below.</p>
+
+  <div class="note">
+    <p><b>Which numbers are which.</b> Diagnosis figures in §2 come from all 2,160 target frames,
+    where the Car baseline reads 0.79. Repair figures come from a disjoint 1,620-frame evaluation
+    split, where it reads 1.83. Both are the INT8 model; the project's published 0.13 is the FP16
+    model on 2,160 frames. All three are correct and measure different things.</p>
+    <p>The harness reproduces the published in-domain <span class="mono">69.70</span> exactly, which
+    is what licenses the rest.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">02</span><h2>The diagnosis that chose the repairs</h2></div>
+  <p class="lede">Before fixing anything, we measured what a perfect fix would even be worth.
+  Substitute ground truth for one predicted quantity, re-score, read off the ceiling.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Ground truth substituted for</th><th>In-domain</th><th>Cross-domain</th><th>Lift</th></tr></thead>
+    <tbody>
+      <tr><td>nothing (baseline)</td><td class="num">69.70</td><td class="num">0.79</td><td class="num">—</td></tr>
+      <tr><td>heading (yaw)</td><td class="num">69.83</td><td class="num">0.85</td><td class="num">+0.06</td></tr>
+      <tr><td>size</td><td class="num">69.36</td><td class="num">2.61</td><td class="num">+1.82</td></tr>
+      <tr><td>centre</td><td class="num">71.19</td><td class="num">4.36</td><td class="num">+3.57</td></tr>
+      <tr class="hl"><td>all three at once</td><td class="num">71.74</td><td class="num">14.10</td><td class="num">+13.31</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><b>Perfect heading is worth 0.06 AP.</b> This overturned the project's own hypothesis, which
+  held that orientation was the fragile component. Heading really does degrade — yaw spread widens
+  from 12.4° to 22.3°, and vehicles within ±5° of true fall from 88% to 35% — it simply cannot move
+  the score on its own.</p>
+
+  <p>The reason is in the last row. Fixing one axis buys almost nothing; fixing three buys 13.31.
+  <b>The failure is conjunctive.</b> Matched cars carry four errors simultaneously:</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Axis</th><th>Measured</th><th>Effect on a 4.1 × 1.9 m box</th></tr></thead>
+    <tbody>
+      <tr><td>Heading</td><td class="num">std 22.3°</td><td>BEV IoU falls to ≈ 0.47</td></tr>
+      <tr><td>Height</td><td class="num">0.786×</td><td>3D IoU falls to ≈ 0.37</td></tr>
+      <tr><td>Width</td><td class="num">0.904×</td><td>compounds both</td></tr>
+      <tr><td>Elevation</td><td class="num">0.49 m low</td><td>compounds vertical overlap</td></tr>
+      <tr><td>Length</td><td class="num">0.996×</td><td>correct</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Each error alone is survivable. Together they put the box on the wrong side of IoU 0.5 — and
+  Pedestrian and Cyclist, judged at 0.25, stay on the right side of theirs. That is the whole class
+  pattern, explained.</p>
+
+  <p>One hard ceiling sits above all of it. Even with every matched box made perfect, cross-domain
+  AP reaches only 14.10, because just <b>22.9%</b> of target objects get any prediction within 2.5 m,
+  against <b>76.5%</b> in-domain. Box quality cannot be repaired on objects that were never found.</p>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">03</span><h2>The nine attempts</h2></div>
+  <p class="lede">In the order they ran. Each was chosen by what the previous one ruled out, so the
+  sequence is the argument.</p>
+
+  <div class="ledger">
+
+    <div class="row">
+      <span class="idx">01</span>
+      <div>
+        <h3>Recalibrate INT8 on unlabeled target frames</h3>
+        <p class="why"><b>Why.</b> Post-training quantisation picks activation ranges from the source
+        domain. If the target's activations fall outside them, everything saturates. This is the
+        proposal's own cheapest intervention, and it needs no labels — only forward passes.</p>
+        <p class="why">Calibrated on 540 target frames, scored on a disjoint 1,620. The split had to
+        be built by hand: the converter had left the target's train file empty, so the config was
+        about to calibrate on the very frames it scored.</p>
+        <div class="outcome">
+          <span class="chip dead">Made it worse</span>
+          <span class="res">Car <span class="v">1.83</span><span class="to">→</span><span class="v dn">0.15</span></span>
+          <span class="res" style="color:var(--faint)">Pedestrian 43.11 → 47.34</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="idx">02</span>
+      <div>
+        <h3>Lower the detection head's confidence floor</h3>
+        <p class="why"><b>Why.</b> The head discards proposals below 0.1. If target confidences are
+        uniformly depressed, that floor alone could be erasing real detections.</p>
+        <p class="why">It emitted two more boxes per frame and the score table did not move one digit.
+        The cause turned out to be downstream: the evaluator's own converter hardcodes a
+        <span class="mono">detection_score &gt; 0.45</span> cut before AP is ever computed, so the
+        head's threshold never reaches the metric.</p>
+        <div class="outcome">
+          <span class="chip flat">No effect</span>
+          <span class="res">Car <span class="v">1.83</span><span class="to">→</span><span class="v eq">1.83</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="idx">03</span>
+      <div>
+        <h3>Lower the evaluator's operating point</h3>
+        <p class="why"><b>Why.</b> Attempt 02 exposed a fixed 0.45 cut — chosen on a domain where the
+        median detection score is <span class="mono">0.987</span>. On the target the median is
+        <span class="mono">0.286</span>, so that same cut discards <b>64%</b> of predictions against
+        10% at the source. It looked like free recall.</p>
+        <p class="why">Swept 0.45 → 0.01 on <em>both</em> domains. Car gained 0.47 and plateaued — but
+        the source gained just as much (Pedestrian +1.10 source against +0.14 target). The hidden
+        predictions are genuinely false positives.</p>
+        <div class="outcome">
+          <span class="chip marg">Best result — but not adaptation</span>
+          <span class="res">Car <span class="v">1.83</span><span class="to">→</span><span class="v up">2.30</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="idx">04</span>
+      <div>
+        <h3>Neutralise the lidar intensity channel</h3>
+        <p class="why"><b>Why.</b> PointPillars consumes intensity as a feature. Two different lidars
+        report it on different scales, which would put the pillar features off the training manifold.</p>
+        <p class="why">The medians already agreed — 13 against 11 — and replacing intensity with a
+        constant cost Pedestrian more than half its accuracy. The channel carries signal, not domain
+        noise.</p>
+        <div class="outcome">
+          <span class="chip dead">Made it much worse</span>
+          <span class="res">Car <span class="v">1.83</span><span class="to">→</span><span class="v dn">0.23</span></span>
+          <span class="res" style="color:var(--faint)">Pedestrian 43.11 → 19.03</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="idx">05</span>
+      <div>
+        <h3>Blank the camera branch</h3>
+        <p class="why"><b>Why.</b> The target camera's optical axis sits about 16° lower than the
+        source's. A fusion model fed geometry it never trained on might be actively suppressing
+        detections its lidar branch would otherwise make. If so, gating the camera under shift is a
+        free repair.</p>
+        <p class="why">The opposite is true. With a constant image every class reads exactly zero and
+        output drops to 2.1 boxes per frame. The camera is load-bearing.</p>
+        <div class="outcome">
+          <span class="chip dead">Total collapse</span>
+          <span class="res">Car <span class="v">1.83</span><span class="to">→</span><span class="v dn">0.00</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="idx">06</span>
+      <div>
+        <h3>Test whether sparser input explains it</h3>
+        <p class="why"><b>Why.</b> The target delivers <span class="mono">9,508</span> points inside
+        the detection volume per frame against the source's <span class="mono">37,930</span> — four
+        times sparser, after 54.5% of its cloud is cropped as structure above the ceiling. That is
+        easily large enough to account for the loss.</p>
+        <p class="why">The clean test is the reverse: thin the <em>source</em> to the target's density
+        and score in-domain. Car lost 5.12 AP — 7.5% of the cross-domain gap. Small classes suffered
+        far more, which is the opposite of the pattern we see across domains.</p>
+        <div class="outcome">
+          <span class="chip dead">Density exonerated</span>
+          <span class="res">In-domain Car <span class="v">69.70</span><span class="to">→</span><span class="v dn">64.58</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="idx">07</span>
+      <div>
+        <h3>Audit the camera calibration</h3>
+        <p class="why"><b>Why.</b> Attempt 05 proved the camera is essential. If the converter had
+        broken its projection geometry, camera evidence would land in the wrong places and poison the
+        fused features everywhere — which would look exactly like this failure.</p>
+        <p class="why">Projecting ground-truth centres through the stored calibration: 100% land in
+        front of the camera in both domains, 96.5% on the image for the source and 84.2% for the
+        target. Sound. It did surface a real gap nobody had quantified — the target lens is
+        <b>1.69× wider</b> (focal 1293 against 2183), with objects at 31.6 m median depth against
+        68.3 m.</p>
+        <div class="outcome">
+          <span class="chip flat">Calibration is sound</span>
+          <span class="res" style="color:var(--faint)">Diagnostic, not a repair</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="idx">08</span>
+      <div>
+        <h3>Sweep the ground plane</h3>
+        <p class="why"><b>Why.</b> Target labels sit exactly where source labels do, but the target's
+        point-cloud ground plane is about a metre lower, and predicted boxes land 0.49 m low. If
+        points and labels disagreed in z, part of the measured "domain gap" would be our own
+        converter — a bug, not a finding.</p>
+        <p class="why">Seven shifts from −0.5 to +1.5 m, with z = 0 as control. <b>No peak anywhere
+        near +0.49.</b> Car and Pedestrian decline monotonically as the cloud rises; the curve tracks
+        how many points survive the crop, not label alignment.</p>
+        <div class="outcome">
+          <span class="chip flat">Converter cleared</span>
+          <span class="res" style="color:var(--faint)">Best 2.08 against a 1.73 control, on 400 frames</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="idx">09</span>
+      <div>
+        <h3>Confirm the one apparent win</h3>
+        <p class="why"><b>Why.</b> The sweep's −0.5 m point showed Car at 2.08 against a 1.73 control.
+        Before claiming it, re-run on the full evaluation split — attempt 03 had already shown how
+        readily an apparent repair turns out to be generic tuning.</p>
+        <p class="why">It reversed sign. On 1,620 frames Car goes <em>down</em> 0.51 where 400 frames
+        had promised up 0.35. The peak was subset noise at absolute values near 1–2 AP.</p>
+        <div class="outcome">
+          <span class="chip dead">Did not replicate</span>
+          <span class="res">Car <span class="v">1.83</span><span class="to">→</span><span class="v dn">1.32</span></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">04</span><h2>All nine, to scale</h2></div>
+  <p class="lede">Car 3D AP at IoU 0.5 on the 1,620-frame evaluation split. The rule marks the
+  unmodified baseline.</p>
+
+  <div class="chart">
+    <p class="cap">Detail view · 0 – 2.5 AP</p>
+    <div class="bars">
+      <div class="bar"><span class="nm">Baseline (unmodified)</span>
+        <span class="track"><span class="fill eq" style="width:73.2%"></span><span class="baseline" style="left:73.2%"></span></span>
+        <span class="val">1.83</span></div>
+      <div class="bar"><span class="nm">01 · INT8 recalibration</span>
+        <span class="track"><span class="fill dn" style="width:6.0%"></span><span class="baseline" style="left:73.2%"></span></span>
+        <span class="val" style="color:var(--loss)">0.15</span></div>
+      <div class="bar"><span class="nm">02 · Head threshold</span>
+        <span class="track"><span class="fill eq" style="width:73.2%"></span><span class="baseline" style="left:73.2%"></span></span>
+        <span class="val">1.83</span></div>
+      <div class="bar"><span class="nm">03 · Operating point</span>
+        <span class="track"><span class="fill up" style="width:92.0%"></span><span class="baseline" style="left:73.2%"></span></span>
+        <span class="val" style="color:var(--gain)">2.30</span></div>
+      <div class="bar"><span class="nm">04 · Intensity neutralised</span>
+        <span class="track"><span class="fill dn" style="width:9.2%"></span><span class="baseline" style="left:73.2%"></span></span>
+        <span class="val" style="color:var(--loss)">0.23</span></div>
+      <div class="bar"><span class="nm">05 · Camera blanked</span>
+        <span class="track"><span class="fill dn" style="width:0.8%"></span><span class="baseline" style="left:73.2%"></span></span>
+        <span class="val" style="color:var(--loss)">0.00</span></div>
+      <div class="bar"><span class="nm">08 · Ground-plane shift</span>
+        <span class="track"><span class="fill up" style="width:83.2%"></span><span class="baseline" style="left:73.2%"></span></span>
+        <span class="val" style="color:var(--gain)">2.08*</span></div>
+      <div class="bar"><span class="nm">09 · Same shift, confirmed</span>
+        <span class="track"><span class="fill dn" style="width:52.8%"></span><span class="baseline" style="left:73.2%"></span></span>
+        <span class="val" style="color:var(--loss)">1.32</span></div>
+    </div>
+    <p class="blabel"><i class="bkey"></i> Baseline 1.83 &nbsp;·&nbsp; *400-frame slice; did not replicate</p>
+    <div class="legend">
+      <span><i style="background:var(--gain)"></i> above baseline</span>
+      <span><i style="background:var(--loss)"></i> below baseline</span>
+      <span><i style="background:var(--flat)"></i> unchanged</span>
+    </div>
+  </div>
+
+  <div class="chart" style="margin-top:18px">
+    <p class="cap">Same numbers against the in-domain ceiling · 0 – 70 AP</p>
+    <div class="gap">
+      <div class="gaprow"><span class="nm">Source domain</span>
+        <span class="track"><span class="fill" style="width:100%;background:var(--source)"></span></span>
+        <span class="val" style="color:var(--source)">69.70</span></div>
+      <div class="gaprow"><span class="nm">Target, unmodified</span>
+        <span class="track"><span class="fill" style="width:2.6%;background:var(--flat)"></span></span>
+        <span class="val">1.83</span></div>
+      <div class="gaprow"><span class="nm">Target, best of nine</span>
+        <span class="track"><span class="fill" style="width:3.3%;background:var(--gain)"></span></span>
+        <span class="val" style="color:var(--gain)">2.30</span></div>
+    </div>
+    <p class="blabel" style="margin-top:14px">Nine interventions closed seven-tenths of one percent of the gap.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">05</span><h2>Where it landed</h2></div>
+
+  <p class="lede">Best Car AP after nine attempts: <b class="mono">2.30</b>, from a baseline of
+  <b class="mono">1.83</b>, against <b class="mono">69.70</b> in-domain.</p>
+
+  <p>And the one positive is not adaptation. Lowering the evaluator's operating point helps the
+  source domain as much as the target, which makes it threshold tuning that was available all along
+  and has nothing to do with domain shift. <b>The net domain-specific improvement from nine
+  label-free interventions is zero.</b></p>
+
+  <p>The diagnosis explains why, and predicts it. The failure is conjunctive: four axes degrade
+  moderately at once, and no intervention that leaves the weights untouched moves more than one of
+  them. Nothing in the input space crosses an IoU threshold that needs three fixed simultaneously.</p>
+
+  <p>Two things survive as measured domain differences that no input patch can reach — a 1.69×
+  focal-length gap feeding a camera branch the model cannot run without, and a recall collapse from
+  76.5% to 22.9% that caps every box-quality repair at 14.10 regardless of how good the boxes get.</p>
+
+  <div class="note">
+    <p><b>The negative results are the result.</b> Each attempt was designed to be falsifiable and
+    several were designed specifically to catch our own pipeline rather than the domains. The
+    ground-plane sweep was built to expose a converter bug and instead cleared it; the density test
+    ran on the source so the control could not be confounded; the operating-point sweep ran on both
+    domains, which is what exposed its own gain as generic. The cross-dataset measurement stands.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">06</span><h2>What would actually raise it</h2></div>
+  <p class="lede">The evidence points one direction, and it is not another post-processing trick.</p>
+
+  <ol class="steps">
+    <li><b>Recall before box quality</b>
+      <span class="m">Perfect boxes on everything currently detected reach only 14.10, because 77% of
+      objects are never found. Until detection improves, every box-refinement method is capped at a
+      fifth of source performance. This orders the whole programme.</span></li>
+
+    <li><b>Fine-tune the regression heads on pseudo-labels, backbone frozen</b>
+      <span class="m">The cheapest intervention that touches weights, and the only kind that can move
+      heading, size and elevation together — which the conjunctive diagnosis says is required. Needs a
+      GPU but not a full retrain, and no target labels.</span></li>
+
+    <li><b>Source-side augmentation: random object scaling and local-structure features</b>
+      <span class="m">Both attack the axes we measured as broken — size at 0.786× height and 0.904×
+      width, and an over-reliance on absolute geometry. Both are fully label-free, applied during
+      source pre-training. Published gains are +27.19 AP and &gt;21 mAP on vehicle-mounted transfers;
+      whether either survives the move to a static roadside sensor is the open question, and a
+      publishable one.</span></li>
+
+    <li><b>Train a supervised oracle</b>
+      <span class="m">Without it, results can only be reported as absolute recovery. With it, every
+      repair becomes a fraction of the recoverable gap — the convention the adaptation literature
+      uses, and the difference between a result and an anecdote.</span></li>
+
+    <li><b>Report at matched IoU, and report per class</b>
+      <span class="m">Car at 0.5 against Pedestrian and Cyclist at 0.25 is doing enormous work in
+      every table on this page. Publishing both thresholds side by side turns a confusing class
+      pattern into a stated property of the benchmark.</span></li>
+
+    <li><b>Add a third domain</b>
+      <span class="m">One source and one target cannot separate sensor differences from geography.
+      A second target pair is what turns a case study into an attribution.</span></li>
+  </ol>
+
+  <p style="margin-top:30px">The honest summary for the year ahead: <b>this gap does not close from
+  the input side.</b> Nine attempts, each with a control, is the evidence for that rather than an
+  assumption — and it is the case for the compute the next stage needs.</p>
+</section>
+
+<footer>
+  <p>Every figure reproducible from <a href="https://github.com/henrytran412/God-eye">github.com/henrytran412/God-eye</a> — raw tables in <span class="mono">results_jetson/repair/</span>.</p>
+  <p>Measured on a borrowed Jetson Orin Nano at 15 W. V2XFusion INT8, DAIR-V2X-I → TUMTraf Intersection R2, zero-shot.</p>
+</footer>
+
+</div>
+
+</body>
+</html>
