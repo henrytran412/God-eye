@@ -13,7 +13,9 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(r"D:\Thucbao\Du hoc\SJSU\Fall 2026\GhostGuard")
-SRC = ROOT / "GhostGuard_Research_Proposal.docx"
+# The template carries the DSS cover page (student ID, GPA), so it lives in the
+# gitignored proposal/private/ and so does everything this script writes.
+SRC = ROOT / "proposal" / "private" / "GhostGuard_Research_Proposal.docx"
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else SRC
 
 CONTENT_W = 12240 - 1440 - 1440          # page width less both margins, in DXA

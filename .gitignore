@@ -4,18 +4,19 @@ __pycache__/
 .venv/
 venv/
 
-# Derived experiment artifacts — regenerate with: python code/run_all.py
-results/train_labels.npz
-results/_smoke.log
+# Derived artifacts of the abandoned GhostGuard sim — regenerate with:
+#   python archive/ghostguard/code/run_all.py
+archive/ghostguard/results/train_labels.npz
+archive/ghostguard/results/_smoke.log
 
-# LaTeX build products (root-anchored so results/*.log is still tracked)
-/*.aux
-/*.out
-/*.toc
-/*.fls
-/*.fdb_latexmk
-/*.synctex.gz
-/PROPOSAL_v2.log
+# LaTeX build products, wherever a .tex is compiled
+proposal/**/*.aux
+proposal/**/*.log
+proposal/**/*.out
+proposal/**/*.toc
+proposal/**/*.fls
+proposal/**/*.fdb_latexmk
+proposal/**/*.synctex.gz
 
 # OS
 Thumbs.db
@@ -37,7 +38,7 @@ graphify-out/
 **/*.plan
 
 # Jetson artifacts: large binaries kept locally, not in git.
-# Recreate with code/edge/jetson_patches/ + JETSON_SETUP.md if lost.
+# Recreate with code/edge/jetson_patches/ + notes/JETSON_SETUP.md if lost.
 jetson_artifacts/models/
 jetson_artifacts/wheels/
 jetson_artifacts/detections/
@@ -45,3 +46,12 @@ jetson_artifacts/out/
 
 # PDF build intermediates (regenerate: python code/make_proposal_pdf.py)
 build/
+
+# Documents carrying the DSS cover page: student ID, GPA, and the mentor's
+# signature. This repo is public (GitHub Pages requires it), so these never leave
+# the machine. The folder's README is the one exception, so it explains itself.
+proposal/private/*
+!proposal/private/README.md
+
+# Word's lock files for open documents
+~$*

@@ -62,22 +62,35 @@ than quietly dropped.
 ## Repository map
 
 ```
+docs/                     The published site (GitHub Pages serves this folder)
+  index.html              Cross-dataset findings
+  repairs.html            Nine label-free repair attempts and what each showed
+
 results_jetson/           All measurements, raw AP tables and logs
   trackA/                 CUDA-BEVFusion edge latency + detection output
   trackB/                 V2XFusion in-domain baseline and compression cost
   tumtraf/                Cross-dataset result and the unscoped comparison
+  repair/                 Per-component ceilings and the repair investigation
   15W/                    Occupancy-model sweep, 3 models x 3 precisions
   sparsity/               2:4 structured sparsity measurements
 
-code/edge/
-  bench_trt.py            trtexec-driven Jetson benchmark: latency, power, thermals
-  occ_model.py            FlashOcc-shaped occupancy net -> ONNX, no mmdet3d needed
-  make_evidence.py        Turns results.json into tables and plots
-  jetson_patches/         Everything needed to reproduce the runs (see below)
+code/
+  edge/                   Jetson benchmarking, export and evaluation
+    jetson_patches/       Everything needed to reproduce the runs (see below)
+  make_proposal_pdf.py    proposal/PROPOSAL_v3.md -> submission PDF
+  fill_dss_template.py    Pours the proposal into the DSS Word template
 
-docs/index.html           The findings page published above
-JETSON_SETUP.md           Board bring-up, and the JetPack 7 blockers with fixes
-WORKFLOW.md               Plan to the 27 September deadline
+proposal/                 DSS proposal: current source and its built PDF
+  archive/                Earlier drafts, v0 to v2, kept for the record
+  private/                Gitignored: anything carrying the cover page
+
+notes/
+  JETSON_SETUP.md         Board bring-up, and the JetPack 7 blockers with fixes
+  REFERENCES_VERIFIED.md  Which citations survived adversarial verification
+  PERCEPTION_PIVOT.md     Why the project moved from security to perception
+  WORKFLOW.md             The plan to the September deadline
+
+archive/ghostguard/       The abandoned earlier project (see below)
 ```
 
 ## Reproducing this
@@ -90,15 +103,16 @@ WORKFLOW.md               Plan to the 27 September deadline
 | `rotate_iou_cpu.py` + `test_rotate_iou.py` | CPU rotated-box IoU, because **numba's CUDA backend segfaults on this board** (a trivial kernel exits 139). Unit-tested, including the 90°-rotation case where a sign error hides. |
 | `eval_crossdataset.py` | Runs a source-domain model on a target domain **without recalibrating** — deliberately, since source-domain calibration is the effect under test. |
 | `loc_error.py`, `yaw_check.py` | The diagnostics that isolated orientation as the failure mode. |
+| `gt_substitution.py`, `match_stats.py`, `eval_repair.py`, `repair_queue.sh` | The repair investigation: per-component AP ceilings, then nine label-free interventions run from a queue. |
 
-`JETSON_SETUP.md` documents the eight blockers between a 2022 MMLab stack and JetPack 7,
+`notes/JETSON_SETUP.md` documents the eight blockers between a 2022 MMLab stack and JetPack 7,
 including two defects in the shared lab container itself: `import scipy.sparse` fails out of
 the box, and its PyTorch is built without `torch.distributed`.
 
-## ⚠ `code/ghostguard/` is abandoned
+## ⚠ `archive/ghostguard/` is abandoned
 
-That directory, and the numbers in `REVIEW.md`, `ADVISOR_BRIEF.md` and `results/`, belong to
-an **earlier project** on cooperative-perception security. Every figure there came from a
+Everything under that folder — its code, its `results/`, and `REVIEW.md`, `ADVISOR_BRIEF.md`
+and `SECURITY_TRACK_ASSESSMENT.md` — belongs to an **earlier project** on cooperative-perception security. Every figure there came from a
 hand-parameterised synthetic simulator with no trained detector — design checks, never
 benchmark performance. The direction was dropped because V2X message attacks on deployed
 vehicles have no documented real-world instance. Kept because the audit that killed it was

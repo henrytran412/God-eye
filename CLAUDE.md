@@ -1,26 +1,29 @@
-# GhostGuard
+# God-eye
 
-An undergraduate research project on cooperative perception for connected vehicles, submitted to the
-SJSU College of Engineering Davidson Student Scholars initiative (AY2026–27). The research question
-is whether a vehicle should admit a shared detection based on the **measured harm** admitting it
-causes, rather than on proxies for whether the message is false.
+Undergraduate research for the SJSU Davidson Student Scholars initiative (AY2026–27, mentor
+Prof. Kaikai Liu): what fails when a roadside 3D detector, NVIDIA's V2XFusion trained on
+DAIR-V2X-I, is deployed unchanged on TUMTraf Intersection, and whether that can be repaired
+without target labels. Measurements run on a Jetson Orin Nano. The current findings live in
+`results_jetson/repair/ATTRIBUTION.md`.
 
-**One thing to keep straight before quoting any number from `results/`:** every figure produced so
-far comes from the synthetic sandbox in `code/ghostguard/sim.py`, not from OPV2V or any real
-dataset, and no LiDAR detector has been trained. Treat those results as design checks on whether the
-decision rule is well-posed, never as benchmark performance. The distinction matters because this
-material goes to a faculty mentor and a review committee.
+The repo is public — GitHub Pages serves `docs/`. Documents carrying the DSS cover page
+(student ID, GPA, the mentor's signature) live in the gitignored `proposal/private/`; keep
+every copy of them there.
 
-Terminology: *baselines* are the prior-art methods compared against; GhostGuard is the *proposed
-method*, never "our baseline". The *oracle* reads ground-truth harm and therefore cheats — it marks
-the achievable ceiling and is not a competitor.
+`archive/ghostguard/` is an abandoned earlier project on cooperative-perception security. Its
+figures come from the synthetic sandbox in `archive/ghostguard/code/ghostguard/sim.py`, with no
+real dataset and no trained detector: quote them as design checks, never as benchmark
+performance.
+
+Terminology: *baselines* are the prior-art methods compared against. The *oracle* uses target
+ground truth, so it marks the achievable ceiling and is never a competitor.
 
 ## Agent skills
 
 ### Issue tracker
 
-Issues and specs live as GitHub issues, driven through the `gh` CLI. Note that `gh` is not yet
-installed and no remote exists; see the setup steps at the end of `docs/agents/issue-tracker.md`.
+Issues and specs live as GitHub issues, driven through the `gh` CLI. `gh` is not yet installed;
+see the setup steps at the end of `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

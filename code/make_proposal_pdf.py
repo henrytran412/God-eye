@@ -1,4 +1,4 @@
-"""Render PROPOSAL_v3.md to the DSS submission PDF via headless Chrome.
+"""Render proposal/PROPOSAL_v3.md to the DSS submission PDF via headless Chrome.
 
 No pandoc or LaTeX on this machine, but Chrome is present and its print engine
 handles @page margins, page breaks and widow/orphan control well enough for a
@@ -15,9 +15,9 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "PROPOSAL_v3.md"
+SRC = ROOT / "proposal" / "PROPOSAL_v3.md"
 OUT_HTML = ROOT / "build" / "proposal.html"
-OUT_PDF = ROOT / "Tran_ThucBao_DSS_F26.pdf"
+OUT_PDF = ROOT / "proposal" / "Tran_ThucBao_DSS_F26.pdf"
 
 CHROME = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
