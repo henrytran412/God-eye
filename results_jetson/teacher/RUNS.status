@@ -1,0 +1,49 @@
+05:50:42Z|START
+05:50:42Z|yolo|wrote /home/sjsujetson/godeye/out/teacher/yolo_eval1620.json: 1620 frames, 10611 vehicle boxes (6.5/frame), 143s
+05:53:32Z|oracle_m90|FIT rc=0|{'boxes2d': 5552, 'fitted': 4091, 'refined': 0, 'added': 0}
+05:53:32Z|oracle_0|FIT rc=0|{'boxes2d': 5552, 'fitted': 4091, 'refined': 0, 'added': 0}
+05:54:30Z|baseline|EVAL rc=0
+05:55:30Z|oracle_m90|EVAL rc=0
+05:56:31Z|oracle_0|EVAL rc=0
+05:56:31Z|convention|oracle BEV@0.5 m90=0.0037 off0=6.4289 -> yaw offset 0
+05:59:18Z|yolo_teacher|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 0, 'added': 0}
+05:59:20Z|yolo_refine|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 1176, 'added': 0}
+06:02:05Z|yolo_both|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 1176, 'added': 3027}
+06:02:06Z|yolo_union|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 0, 'added': 3033}
+06:03:07Z|yolo_teacher|EVAL rc=0
+06:04:04Z|yolo_refine|EVAL rc=0
+06:05:04Z|yolo_union|EVAL rc=0
+06:06:06Z|yolo_both|EVAL rc=0
+06:06:06Z|ALL_DONE
+06:06:10Z|V2_START
+06:08:40Z|oracleB_fix|FIT rc=0|{'boxes2d': 5571, 'fitted': 4218, 'refined': 0, 'added': 0}
+06:09:54Z|oracleB_fit2d|FIT rc=0|{'boxes2d': 5571, 'fitted': 4218, 'refined': 0, 'added': 0}
+06:10:55Z|oracleB_fix|EVAL rc=0
+06:11:57Z|oracleB_fit2d|EVAL rc=0
+06:15:54Z|yolo2_teacher|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 0, 'added': 0}
+06:15:55Z|yolo2_both|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 1331, 'added': 2904}
+06:19:52Z|yolo2_refine|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 1331, 'added': 0}
+06:19:53Z|yolo2_union|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 0, 'added': 2891}
+06:20:54Z|yolo2_teacher|EVAL rc=0
+06:21:56Z|yolo2_both|EVAL rc=0
+06:22:53Z|yolo2_refine|EVAL rc=0
+06:23:54Z|yolo2_union|EVAL rc=0
+06:23:54Z|V2_DONE
+06:27:36Z|V3_START
+06:31:06Z|yolo3_src_roads|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 0, 'added': 0} snapped to a road direction: 3652/4260
+06:31:07Z|yolo3_tgtH_roads|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 0, 'added': 0} snapped to a road direction: 3652/4260
+06:34:15Z|yolo3_tgtH_noroad|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 0, 'added': 0} 
+06:35:16Z|yolo3_src_roads|EVAL rc=0
+06:36:47Z|yolo3_tgtH_roads|EVAL rc=0
+06:37:58Z|yolo3_tgtH_noroad|EVAL rc=0
+06:37:58Z|V3_DONE
+06:39:42Z|V4_START
+06:43:27Z|yolo4_src|FIT rc=0|{'boxes2d': 7972, 'fitted': 4260, 'refined': 0, 'added': 0}
+06:44:42Z|yolo4_src_truck|FIT rc=0|{'boxes2d': 8844, 'fitted': 4921, 'refined': 0, 'added': 0}
+06:45:49Z|yolo4_src|EVAL rc=0
+06:46:55Z|yolo4_src_truck|EVAL rc=0
+06:46:55Z|V4_DONE
+06:47:09Z|V5_START
+06:51:27Z|yolo5_mono|FIT rc=0|{'boxes2d': 7972, 'fitted': 7962, 'refined': 0, 'added': 0, 'mono': 3702}
+06:52:31Z|yolo5_mono|EVAL rc=0
+06:52:31Z|V5_DONE
