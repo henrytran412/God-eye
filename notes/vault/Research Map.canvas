@@ -1,0 +1,203 @@
+{
+  "nodes": [
+    {
+      "id": "d6ba2b0aee0ca923",
+      "type": "text",
+      "x": -440,
+      "y": -190,
+      "width": 1080,
+      "height": 120,
+      "color": "6",
+      "text": "# God-eye \u2014 how the findings connect\nFollow the arrows. Red is what broke, green is what worked."
+    },
+    {
+      "id": "a4c123b1612dd272",
+      "type": "file",
+      "file": "Datasets.md",
+      "x": -440,
+      "y": 0,
+      "width": 320,
+      "height": 190,
+      "color": "5"
+    },
+    {
+      "id": "d1371c17149d4395",
+      "type": "file",
+      "file": "Jetson.md",
+      "x": -440,
+      "y": 240,
+      "width": 320,
+      "height": 190,
+      "color": "5"
+    },
+    {
+      "id": "36b3216fdaeeb975",
+      "type": "file",
+      "file": "Research Question.md",
+      "x": 0,
+      "y": 0,
+      "width": 340,
+      "height": 200,
+      "color": "6"
+    },
+    {
+      "id": "729fae923d5a4fd1",
+      "type": "file",
+      "file": "Domain Shift.md",
+      "x": 0,
+      "y": 260,
+      "width": 340,
+      "height": 260,
+      "color": "1"
+    },
+    {
+      "id": "2aabfe228f219e9c",
+      "type": "file",
+      "file": "Metrics.md",
+      "x": 0,
+      "y": 580,
+      "width": 340,
+      "height": 220,
+      "color": "2"
+    },
+    {
+      "id": "b0eb53f16947ccf2",
+      "type": "file",
+      "file": "Component Attribution.md",
+      "x": 440,
+      "y": 120,
+      "width": 380,
+      "height": 300,
+      "color": "1"
+    },
+    {
+      "id": "5ec84d8dbc742547",
+      "type": "file",
+      "file": "Corrections.md",
+      "x": 440,
+      "y": 480,
+      "width": 380,
+      "height": 260,
+      "color": "2"
+    },
+    {
+      "id": "70f58904dba41ecc",
+      "type": "file",
+      "file": "Repair Attempts.md",
+      "x": 920,
+      "y": 0,
+      "width": 380,
+      "height": 280,
+      "color": "2"
+    },
+    {
+      "id": "cc3fc1626e53a130",
+      "type": "file",
+      "file": "Label-Free Teacher.md",
+      "x": 920,
+      "y": 340,
+      "width": 380,
+      "height": 320,
+      "color": "4"
+    },
+    {
+      "id": "43b026c48bbf33fe",
+      "type": "file",
+      "file": "Open Questions.md",
+      "x": 1400,
+      "y": 160,
+      "width": 340,
+      "height": 300,
+      "color": "6"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ff9243a8f506b409",
+      "fromNode": "a4c123b1612dd272",
+      "fromSide": "right",
+      "toNode": "36b3216fdaeeb975",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "28b5b7a767c76fb0",
+      "fromNode": "d1371c17149d4395",
+      "fromSide": "right",
+      "toNode": "36b3216fdaeeb975",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "measured on"
+    },
+    {
+      "id": "08f86bebb2737f6a",
+      "fromNode": "36b3216fdaeeb975",
+      "fromSide": "bottom",
+      "toNode": "729fae923d5a4fd1",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "6f0fb23c6f5da2ce",
+      "fromNode": "729fae923d5a4fd1",
+      "fromSide": "bottom",
+      "toNode": "2aabfe228f219e9c",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "read first"
+    },
+    {
+      "id": "c255404e4fb44003",
+      "fromNode": "729fae923d5a4fd1",
+      "fromSide": "right",
+      "toNode": "b0eb53f16947ccf2",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "which part?"
+    },
+    {
+      "id": "4d6608697a8d41be",
+      "fromNode": "b0eb53f16947ccf2",
+      "fromSide": "bottom",
+      "toNode": "5ec84d8dbc742547",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "overturned"
+    },
+    {
+      "id": "d440e50454f31af3",
+      "fromNode": "b0eb53f16947ccf2",
+      "fromSide": "right",
+      "toNode": "70f58904dba41ecc",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "9 tried"
+    },
+    {
+      "id": "176813e02ea68ef7",
+      "fromNode": "70f58904dba41ecc",
+      "fromSide": "bottom",
+      "toNode": "cc3fc1626e53a130",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "all failed"
+    },
+    {
+      "id": "86e4d3cea27d2693",
+      "fromNode": "cc3fc1626e53a130",
+      "fromSide": "right",
+      "toNode": "43b026c48bbf33fe",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "4.2x, then?"
+    },
+    {
+      "id": "4b484e73cf575dca",
+      "fromNode": "70f58904dba41ecc",
+      "fromSide": "right",
+      "toNode": "43b026c48bbf33fe",
+      "toSide": "left",
+      "toEnd": "arrow"
+    }
+  ]
+}
